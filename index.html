@@ -8,8 +8,15 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Inter', system-ui, sans-serif; }
-        .led { width: 100%; aspect-ratio: 1; background-color: #334155; border-radius: 4px; cursor: pointer; transition: all 0.1s; }
-        .led.active { background-color: #ef4444; box-shadow: 0 0 12px #ef4444; }
+        .led { 
+            width: 100%; 
+            aspect-ratio: 1; 
+            background-color: #334155; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            transition: all 0.1s; 
+        }
+        .led.active { background-color: #ef4444; box-shadow: 0 0 16px #ef4444; }
         body.is-editing .ui-editable { border-bottom: 1px dashed #facc15; border-radius: 0; transition: border 0.2s; cursor: text !important; }
         body:not(.is-editing) .ui-editable { border-bottom: 1px solid transparent; }
         body:not(.is-editing) .ui-editable-btn { pointer-events: none; }
@@ -38,13 +45,14 @@
         <!-- Digital Twin Column -->
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col items-center justify-center">
             <h2 class="text-xl font-bold mb-6 text-slate-300">Digital Twin</h2>
-            <div class="bg-slate-950 p-6 sm:p-10 rounded-[3.5rem] border-b-[12px] border-slate-900 w-full max-w-[380px] lg:max-w-[450px] shadow-2xl relative pt-6 flex flex-col">
+            <div class="bg-slate-950 p-6 sm:p-10 rounded-[3.5rem] border-b-[12px] border-slate-900 w-full max-w-[420px] lg:max-w-[480px] shadow-2xl relative pt-6 flex flex-col">
                 <div class="flex justify-center mb-6 sm:mb-8">
                     <div id="twin-logo" class="w-16 h-8 bg-slate-800 rounded-b-2xl border-b-4 border-yellow-600 flex justify-center items-end pb-1.5 transition-all duration-100"><span class="text-xs font-bold text-yellow-600">LOGO</span></div>
                 </div>
                 <div class="flex justify-between items-center px-1 sm:px-2 mb-4">
                     <button id="twin-btnA" class="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-full bg-slate-700 flex items-center justify-center text-lg sm:text-xl font-bold shadow-[inset_0_4px_8px_rgba(0,0,0,0.6)] transition-all duration-75">A</button>
-                    <div class="grid grid-cols-5 gap-2.5 sm:gap-4 bg-black p-4 sm:p-6 rounded-2xl flex-1 max-w-[200px] sm:max-w-[260px] mx-4 sm:mx-6" id="led-matrix"></div>
+                    <!-- Enlarged LED Grid Container and Spacing -->
+                    <div class="grid grid-cols-5 gap-3 sm:gap-4 bg-black p-5 sm:p-7 rounded-2xl flex-1 max-w-[260px] sm:max-w-[320px] mx-3 sm:mx-5" id="led-matrix"></div>
                     <button id="twin-btnB" class="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-full bg-slate-700 flex items-center justify-center text-lg sm:text-xl font-bold shadow-[inset_0_4px_8px_rgba(0,0,0,0.6)] transition-all duration-75">B</button>
                 </div>
             </div>
@@ -99,7 +107,7 @@
                     <select id="cmd-ico" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none font-mono text-white">
                         <option value="Heart">❤️ Heart</option>
                         <option value="Happy">😀 Happy</option>
-                        <option value="Ghost">👻 Ghost</option>
+                        <option value="Ghost">ghost Ghost</option>
                     </select>
                     <button onclick="sendBluetoothCommand('ICO:' + document.getElementById('cmd-ico').value)" class="bg-pink-600 hover:bg-pink-500 px-4 rounded-lg font-bold text-sm transition-colors shadow-lg">SHOW</button>
                 </div>
@@ -197,10 +205,7 @@
                 rxCharacteristic.addEventListener('characteristicvaluechanged', handleIncomingData);
 
                 const btn = document.getElementById("btnConnect");
-                btn.innerHTML = "✅ Connected to micro:bit"; btn.classList.replace("bg-blue-600", "bg-green-600"); btn.classList.replace("hover:bg-blue-500", "hover:bg-green-500");
-
-                // Tell the micro:bit to send ONLY basic telemetry
-                setTimeout(() => { sendBluetoothCommand('TAB:BASIC'); }, 500);
+                btn.innerHTML = "✅ Connected"; btn.classList.replace("bg-blue-600", "bg-green-600"); btn.classList.replace("hover:bg-blue-500", "hover:bg-green-500");
 
                 bluetoothDevice.addEventListener('gattserverdisconnected', () => {
                     const btn = document.getElementById("btnConnect");
