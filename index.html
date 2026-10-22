@@ -55,7 +55,7 @@
     </div>
 
     <!-- Header -->
-    <header class="flex flex-col md:flex-row justify-between items-center bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-700 mb-6 gap-4 md:gap-0">
+    <header class="flex flex-col md:flex-row justify-between items-center bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-700 mb-6 gap-4 md:gap-0 shrink-0">
         <h1 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
             MakerLink IDE
         </h1>
@@ -76,7 +76,7 @@
     </header>
 
     <!-- Tabs -->
-    <div class="flex gap-2 mb-6">
+    <div class="flex gap-2 mb-6 shrink-0">
         <button id="tab-basic" onclick="switchTab('basic')" class="flex-1 py-3 bg-blue-500/20 text-blue-400 border border-blue-500/50 font-bold rounded-lg transition-all shadow-[0_0_15px_rgba(59,130,246,0.2)]">
             ⭐ Basic Mode (Digital Twin)
         </button>
@@ -86,28 +86,30 @@
     </div>
 
     <!-- Basic Mode Content -->
-    <div id="content-basic" class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
+    <div id="content-basic" class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
         
         <!-- Digital Twin -->
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col items-center justify-center">
             <h2 class="text-xl font-bold mb-6 text-slate-300">Digital Twin</h2>
-            <div class="bg-slate-950 p-6 rounded-[2rem] border-b-8 border-slate-900 w-64 shadow-2xl relative pt-2">
-                <!-- Touch Logo (Shake target) -->
-                <div class="flex justify-center mb-4">
-                    <div id="twin-logo" class="w-10 h-4 bg-slate-800 rounded-b-lg border-b-2 border-yellow-600 flex justify-center items-end pb-0.5 transition-all duration-100">
-                        <span class="text-[8px] font-bold text-yellow-600">LOGO</span>
+            <!-- Increased width to w-72 / lg:w-80 for desktop sizing -->
+            <div class="bg-slate-950 p-6 sm:p-8 rounded-[2.5rem] border-b-8 border-slate-900 w-72 lg:w-80 shadow-2xl relative pt-3">
+                <!-- Touch Logo -->
+                <div class="flex justify-center mb-5">
+                    <div id="twin-logo" class="w-12 h-5 bg-slate-800 rounded-b-xl border-b-2 border-yellow-600 flex justify-center items-end pb-1 transition-all duration-100">
+                        <span class="text-[9px] font-bold text-yellow-600">LOGO</span>
                     </div>
                 </div>
-                <div class="flex justify-between items-center px-2 mb-2">
-                    <button id="twin-btnA" class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] transition-all duration-75">A</button>
-                    <div class="grid grid-cols-5 gap-2 bg-black p-3 rounded-lg w-full mx-4" id="led-matrix"></div>
-                    <button id="twin-btnB" class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] transition-all duration-75">B</button>
+                <div class="flex justify-between items-center px-1 sm:px-3 mb-3">
+                    <button id="twin-btnA" class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] transition-all duration-75">A</button>
+                    <!-- Increased gap to spread LEDs -->
+                    <div class="grid grid-cols-5 gap-2.5 bg-black p-4 rounded-xl w-full mx-4 sm:mx-6" id="led-matrix"></div>
+                    <button id="twin-btnB" class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] transition-all duration-75">B</button>
                 </div>
             </div>
         </div>
 
         <!-- Instruments -->
-        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col gap-6">
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col gap-6 overflow-y-auto">
             <h2 class="text-xl font-bold text-slate-300">Instruments</h2>
             <div id="shake-indicator" class="bg-slate-700 text-slate-400 text-center py-2 rounded-lg font-bold uppercase transition-colors border border-slate-600">No Shake</div>
             <div class="grid grid-cols-2 gap-4">
@@ -120,7 +122,6 @@
                 </div>
                 <div class="bg-slate-900 p-4 rounded-lg flex flex-col items-center border border-slate-700 shadow-inner overflow-hidden">
                     <span class="text-sm font-bold text-slate-400 mb-2">ROLL</span>
-                    <!-- Oversized container to prevent clipping when rotated -->
                     <div class="h-24 w-24 bg-slate-800 rounded-full relative overflow-hidden flex justify-center items-center border-2 border-slate-700 shadow-inner">
                         <div id="roll-horizon" class="w-[150%] h-[150%] absolute transition-transform duration-200 flex flex-col">
                             <div class="h-1/2 w-full bg-blue-500/30 border-b-2 border-blue-500 shadow-[0_4px_10px_rgba(59,130,246,0.4)]"></div>
@@ -139,26 +140,27 @@
         </div>
 
         <!-- Telemetry & Controls -->
-        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col gap-4">
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col gap-4 flex-1 h-full min-h-0">
             <h2 class="text-xl font-bold text-slate-300">Telemetry & Controls</h2>
             
-            <!-- 3 Separate Mini Charts -->
-            <div class="flex flex-col gap-2 flex-1">
-                <div class="bg-slate-900 p-2 rounded-lg border border-slate-700 h-16 w-full shadow-inner flex items-center">
-                    <span class="text-[10px] font-bold text-orange-400 w-10">TEMP</span>
-                    <div class="flex-1 h-full"><canvas id="chart-temp"></canvas></div>
+            <!-- Stretching Flex Charts -->
+            <div class="flex flex-col gap-3 flex-1 min-h-[250px]">
+                <div class="bg-slate-900 p-3 rounded-lg border border-slate-700 flex-1 shadow-inner flex items-center min-h-[60px]">
+                    <span class="text-[10px] sm:text-xs font-bold text-orange-400 w-12 text-center">TEMP</span>
+                    <div class="flex-1 h-full w-full relative"><canvas id="chart-temp"></canvas></div>
                 </div>
-                <div class="bg-slate-900 p-2 rounded-lg border border-slate-700 h-16 w-full shadow-inner flex items-center">
-                    <span class="text-[10px] font-bold text-yellow-400 w-10">LIGHT</span>
-                    <div class="flex-1 h-full"><canvas id="chart-light"></canvas></div>
+                <div class="bg-slate-900 p-3 rounded-lg border border-slate-700 flex-1 shadow-inner flex items-center min-h-[60px]">
+                    <span class="text-[10px] sm:text-xs font-bold text-yellow-400 w-12 text-center">LIGHT</span>
+                    <div class="flex-1 h-full w-full relative"><canvas id="chart-light"></canvas></div>
                 </div>
-                <div class="bg-slate-900 p-2 rounded-lg border border-slate-700 h-16 w-full shadow-inner flex items-center">
-                    <span class="text-[10px] font-bold text-cyan-400 w-10">SOUND</span>
-                    <div class="flex-1 h-full"><canvas id="chart-sound"></canvas></div>
+                <div class="bg-slate-900 p-3 rounded-lg border border-slate-700 flex-1 shadow-inner flex items-center min-h-[60px]">
+                    <span class="text-[10px] sm:text-xs font-bold text-cyan-400 w-12 text-center">SOUND</span>
+                    <div class="flex-1 h-full w-full relative"><canvas id="chart-sound"></canvas></div>
                 </div>
             </div>
 
-            <div class="flex flex-col gap-3 mt-2">
+            <!-- Controls locked to bottom -->
+            <div class="flex flex-col gap-3 mt-4 shrink-0">
                 <div class="flex gap-2">
                     <input type="text" id="cmd-txt" placeholder="Type message..." class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 font-mono text-white">
                     <button onclick="sendBluetoothCommand('TXT:' + document.getElementById('cmd-txt').value)" class="bg-blue-600 hover:bg-blue-500 px-4 rounded-lg font-bold text-sm transition-colors shadow-lg">SEND</button>
@@ -183,7 +185,7 @@
         </div>
     </div>
 
-    <!-- Advanced Mode Content (Unchanged) -->
+    <!-- Advanced Mode Content -->
     <div id="content-adv" class="hidden flex-col gap-8 flex-1">
         <div>
             <h3 class="text-xl font-bold text-emerald-400 mb-4 flex items-center gap-2">🔌 EXTERNAL SENSORS (1-8)</h3>
@@ -200,7 +202,6 @@
     </div>
 
     <script>
-        // --- State ---
         let currentTab = 'basic';
         let isSimActive = false, simInterval = null;
         let isCloudActive = false, cloudRoomId = null, cloudInterval = null;
@@ -602,7 +603,6 @@
                 document.getElementById('compass-needle').style.transform = `rotate(${data.head}deg)`;
             }
 
-            // Button and Logo Press Animations
             if(data.btnA !== undefined) {
                 const btn = document.getElementById('twin-btnA');
                 if(data.btnA === 1) btn.classList.add('btn-press');
@@ -618,11 +618,9 @@
             const logo = document.getElementById('twin-logo');
             
             if(data.shk === 1) {
-                // Animate Top Logo
                 logo.classList.add('bg-red-500', 'border-red-600', 'translate-y-1');
                 logo.classList.remove('bg-slate-800', 'border-yellow-600');
                 
-                // Show Shake Text
                 shakeInd.innerText = "SHAKE DETECTED";
                 shakeInd.className = "bg-red-600 text-white text-center py-2 rounded-lg font-bold uppercase transition-colors shadow-[0_0_10px_rgba(220,38,38,0.5)] border border-red-500";
                 
@@ -750,7 +748,6 @@
                 extData += `,Ext${i}:${Math.round(500 + Math.sin(tick + i)*400)}`;
             }
 
-            // Simulating sequential packet arrival
             parseTelemetry(`temp:${t}`);
             parseTelemetry(`light:${l}`);
             parseTelemetry(`sound:${s}`);
