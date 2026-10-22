@@ -45,7 +45,7 @@
         <button id="tab-adv" onclick="switchTab('adv')" class="flex-1 py-3 bg-slate-800 text-slate-400 border border-slate-700 font-bold rounded-lg hover:bg-slate-700 transition-all">🚀 Advanced Mode (MOTION:BIT)</button>
     </div>
 
-    <!-- Basic Mode Content (Unchanged) -->
+    <!-- Basic Mode Content -->
     <div id="content-basic" class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col items-center justify-center">
             <h2 class="text-xl font-bold mb-6 text-slate-300">Digital Twin</h2>
@@ -130,7 +130,7 @@
         </div>
         <div>
             <h3 class="text-xl font-bold text-emerald-400 mb-4 flex items-center gap-2">🔌 DIGITAL PINS (P9-P16)</h3>
-            <div id="grid-digital" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"></div>
+            <div id="grid-digital" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3"></div>
         </div>
         <div>
             <h3 class="text-xl font-bold text-orange-400 mb-4 flex items-center gap-2">⚙️ DC MOTORS (M1-M4)</h3>
@@ -307,17 +307,20 @@
                     </div>
                 `;
             } else {
+                // COMPACT DIGITAL UI
                 inView = `
-                    <div id="view-in-${id}" class="flex flex-col items-center justify-center w-full h-full min-h-[140px] transition-all">
-                        <div id="val-${id}" class="text-6xl font-mono text-slate-500 font-bold drop-shadow-lg transition-colors duration-200">0</div>
-                        <div class="mt-4 text-[10px] font-bold text-slate-500 tracking-[0.2em]">STATE</div>
+                    <div id="view-in-${id}" class="flex flex-col items-center justify-center w-full min-h-[70px] transition-all">
+                        <div class="flex items-center gap-4">
+                            <div class="text-[10px] font-bold text-slate-500 tracking-[0.1em] uppercase">State</div>
+                            <div id="val-${id}" class="text-4xl font-mono text-slate-500 font-bold drop-shadow-lg transition-colors duration-200">0</div>
+                        </div>
                     </div>
                 `;
                 outControls = `
-                    <div class="w-full h-full flex flex-col justify-center">
-                        <div class="flex justify-between gap-4 mt-2">
-                            <button onclick="sendBluetoothCommand('${id}:0')" class="flex-1 py-6 bg-slate-700 hover:bg-slate-600 rounded-xl text-slate-300 font-bold text-lg border border-slate-600 shadow-inner active:bg-slate-500 transition-all">LOW<br><span class="text-xs font-normal">0</span></button>
-                            <button onclick="sendBluetoothCommand('${id}:1')" class="flex-1 py-6 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-white font-bold text-lg border border-emerald-500 shadow-lg active:bg-emerald-400 transition-all">HIGH<br><span class="text-xs font-normal">1</span></button>
+                    <div class="w-full h-full flex flex-col justify-center min-h-[70px]">
+                        <div class="flex justify-between gap-2 mt-1">
+                            <button onclick="sendBluetoothCommand('${id}:0')" class="flex-1 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 font-bold text-sm border border-slate-600 shadow-inner active:bg-slate-500 transition-all">LOW</button>
+                            <button onclick="sendBluetoothCommand('${id}:1')" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-white font-bold text-sm border border-emerald-500 shadow-lg active:bg-emerald-400 transition-all">HIGH</button>
                         </div>
                     </div>
                 `;
@@ -325,17 +328,17 @@
 
             return `
                 <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden flex flex-col transition-all duration-300 shadow-lg hover:border-slate-500/50">
-                    <div class="p-3 bg-slate-900 border-b border-slate-700 flex justify-between items-center">
-                        <div class="flex items-center gap-2">
+                    <div class="p-2 bg-slate-900 border-b border-slate-700 flex justify-between items-center">
+                        <div class="flex items-center gap-1">
                             <span class="font-bold text-sm ${colorClass} ml-1">${id}</span>
-                            <div class="flex bg-slate-800 rounded border border-slate-700 p-0.5 ml-2 cursor-pointer">
-                                <button id="btn-in-${id}" onclick="setPinMode('${id}', 'IN')" class="px-2 py-0.5 text-[10px] rounded bg-blue-600 text-white font-bold transition-colors">IN</button>
-                                <button id="btn-out-${id}" onclick="setPinMode('${id}', 'OUT')" class="px-2 py-0.5 text-[10px] rounded text-slate-500 font-bold transition-colors">OUT</button>
+                            <div class="flex bg-slate-800 rounded border border-slate-700 p-[2px] ml-1 cursor-pointer">
+                                <button id="btn-in-${id}" onclick="setPinMode('${id}', 'IN')" class="px-1.5 py-0.5 text-[9px] rounded bg-blue-600 text-white font-bold transition-colors">IN</button>
+                                <button id="btn-out-${id}" onclick="setPinMode('${id}', 'OUT')" class="px-1.5 py-0.5 text-[9px] rounded text-slate-500 font-bold transition-colors">OUT</button>
                             </div>
                         </div>
-                        <input type="text" id="title-${id}" value="${id}" readonly class="ui-editable ui-editable-title font-bold text-sm text-slate-300 ml-1 bg-transparent border-none outline-none focus:ring-1 focus:ring-slate-500 rounded w-24 text-right placeholder-slate-500" placeholder="Label...">
+                        <input type="text" id="title-${id}" value="${id}" readonly class="ui-editable ui-editable-title font-bold text-xs text-slate-300 ml-1 bg-transparent border-none outline-none focus:ring-1 focus:ring-slate-500 rounded w-16 text-right placeholder-slate-500" placeholder="Label...">
                     </div>
-                    <div id="body-${id}" class="p-4 flex-1 flex flex-col bg-slate-800">
+                    <div id="body-${id}" class="p-3 flex-1 flex flex-col justify-center bg-slate-800">
                         ${inView}
                         <div id="view-out-${id}" class="hidden flex flex-col items-center justify-center w-full h-full transition-all">
                             ${outControls}
@@ -509,29 +512,20 @@
                 }, 800);
             }
 
-            // Analog Pins Update (Charts)
             ['P0', 'P1', 'P2'].forEach(pin => {
                 if(data[pin] !== undefined) {
-                    advancedData[pin] = data[pin];
-                    let el = document.getElementById(`val-${pin}`);
-                    if(el && !document.getElementById(`view-in-${pin}`).classList.contains('hidden')) {
-                        el.innerText = data[pin]; pushSensorData(pin, data[pin]);
-                    }
+                    advancedData[pin] = data[pin]; let el = document.getElementById(`val-${pin}`);
+                    if(el && !document.getElementById(`view-in-${pin}`).classList.contains('hidden')) { el.innerText = data[pin]; pushSensorData(pin, data[pin]); }
                 }
             });
 
-            // Digital Pins Update (No Charts, Color Swap)
             ['P9', 'P12', 'P13', 'P14', 'P15', 'P16'].forEach(pin => {
                 if(data[pin] !== undefined) {
-                    advancedData[pin] = data[pin];
-                    let el = document.getElementById(`val-${pin}`);
+                    advancedData[pin] = data[pin]; let el = document.getElementById(`val-${pin}`);
                     if(el && !document.getElementById(`view-in-${pin}`).classList.contains('hidden')) {
                         el.innerText = data[pin];
-                        if (data[pin] === 1) {
-                            el.classList.replace('text-slate-500', 'text-emerald-400');
-                        } else {
-                            el.classList.replace('text-emerald-400', 'text-slate-500');
-                        }
+                        if (data[pin] === 1) { el.classList.replace('text-slate-500', 'text-emerald-400'); } 
+                        else { el.classList.replace('text-emerald-400', 'text-slate-500'); }
                     }
                 }
             });
