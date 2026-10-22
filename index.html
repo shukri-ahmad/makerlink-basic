@@ -61,6 +61,7 @@
             </div>
             <button onclick="sendBluetoothCommand('ICO:Clear')" class="mt-8 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 px-8 rounded-full shadow-lg transition-colors border border-slate-600 active:bg-red-500 active:border-red-500 flex items-center gap-2"><span class="text-xl">🧽</span> Clear Screen</button>
         </div>
+        
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col gap-6 overflow-y-auto">
             <h2 class="text-xl font-bold text-slate-300">Instruments</h2>
             <div id="shake-indicator" class="bg-slate-700 text-slate-400 text-center py-2 rounded-lg font-bold uppercase transition-colors border border-slate-600">No Shake</div>
@@ -84,6 +85,7 @@
                 <span id="val-compass" class="mt-2 font-mono text-red-400 font-bold">0° N</span>
             </div>
         </div>
+        
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col gap-4 flex-1 h-full min-h-0">
             <h2 class="text-xl font-bold text-slate-300">Telemetry & Controls</h2>
             <div class="flex flex-col gap-3 flex-1 min-h-[250px]">
@@ -224,10 +226,12 @@
                 btnBasic.className = "flex-1 py-3 bg-blue-500/20 text-blue-400 border border-blue-500/50 font-bold rounded-lg transition-all shadow-[0_0_15px_rgba(59,130,246,0.2)]";
                 btnAdv.className = "flex-1 py-3 bg-slate-800 text-slate-400 border border-slate-700 font-bold rounded-lg hover:bg-slate-700 transition-all";
                 contentBasic.style.display = 'grid'; contentAdv.style.display = 'none';
+                sendBluetoothCommand('TAB:BASIC');
             } else {
                 btnAdv.className = "flex-1 py-3 bg-blue-500/20 text-blue-400 border border-blue-500/50 font-bold rounded-lg transition-all shadow-[0_0_15px_rgba(59,130,246,0.2)]";
                 btnBasic.className = "flex-1 py-3 bg-slate-800 text-slate-400 border border-slate-700 font-bold rounded-lg hover:bg-slate-700 transition-all";
                 contentBasic.style.display = 'none'; contentAdv.style.display = 'flex';
+                sendBluetoothCommand('TAB:ADV');
             }
         }
 
@@ -307,7 +311,6 @@
                     </div>
                 `;
             } else {
-                // COMPACT DIGITAL UI
                 inView = `
                     <div id="view-in-${id}" class="flex flex-col items-center justify-center w-full min-h-[70px] transition-all">
                         <div class="flex items-center gap-4">
@@ -460,6 +463,10 @@
                 const btn = document.getElementById("btnConnect");
                 btn.innerHTML = "✅ Connected to micro:bit"; btn.classList.replace("bg-blue-600", "bg-green-600"); btn.classList.replace("hover:bg-blue-500", "hover:bg-green-500");
 
+                setTimeout(() => {
+                    sendBluetoothCommand(currentTab === 'basic' ? 'TAB:BASIC' : 'TAB:ADV');
+                }, 500);
+
                 bluetoothDevice.addEventListener('gattserverdisconnected', () => {
                     const btn = document.getElementById("btnConnect");
                     btn.innerHTML = "🔌 Connect to micro:bit"; btn.classList.replace("bg-green-600", "bg-blue-600"); btn.classList.replace("hover:bg-green-500", "hover:bg-blue-500");
@@ -538,6 +545,23 @@
                 if (txCharacteristic.properties.writeWithoutResponse) { await txCharacteristic.writeValueWithoutResponse(data); } 
                 else { await txCharacteristic.writeValue(data); }
             } catch (err) { console.error("TX Error:", err); }
+        }
+
+        function toggleCloud() {
+            isCloudActive = !isCloudActive; const btn = document.getElementById('btn-cloud');
+            if (isCloudActive) {
+                cloudRoomId = Math.floor(1000 + Math.random() * 9000);
+                btn.innerHTML = `🔴 Live: Room ${cloudRoomId}`; btn.className = "bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg transition-colors min-w-[140px] animate-pulse shadow-[0_0_15px_rgba(220,38,38,0.5)]";
+                cloudInterval = setInterval(syncCloud, 2000);
+            } else {
+                btn.innerHTML = `☁️ Go Public`; btn.className = "bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-lg transition-colors min-w-[140px] shadow-lg";
+                clearInterval(cloudInterval);
+            }
+        }
+
+        function syncCloud() {
+            // Placeholder for future cloud sync logic
+            console.log(`Syncing to room ${cloudRoomId}...`);
         }
 
         let tick = 0;
