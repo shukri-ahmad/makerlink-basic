@@ -1,422 +1,191 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
-    <!-- PWA / FULLSCREEN META TAGS -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#111827">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MakerLink IDE</title>
-    
-    <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: { extend: { colors: { gray: { 850: '#1f2937', 900: '#111827' } } } }
-        }
-    </script>
-    
     <style>
-        body { background-color: #111827; color: #e5e7eb; font-family: 'Segoe UI', system-ui, sans-serif; overflow-x: hidden; }
+        body { font-family: 'Inter', system-ui, sans-serif; }
         
-        /* Master Lock Editable Fields */
-        .editable { transition: all 0.2s; border-radius: 4px; padding: 2px 4px; border: 1px solid transparent; }
-        .edit-mode .editable { border-color: #4b5563; background-color: #374151; cursor: text; outline: none; }
-        .edit-mode .editable:focus { border-color: #3b82f6; background-color: #1f2937; }
-        
-        /* Toggle Switch CSS */
-        .toggle-checkbox:checked { right: 0; border-color: #10B981; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #10B981; }
-        .toggle-checkbox { right: 0; z-index: 1; border-color: #e5e7eb; transition: all 0.3s; }
-        .toggle-label { width: 3rem; height: 1.5rem; background-color: #4B5563; transition: all 0.3s; }
-        
-        /* Hide public toggles when not editing */
-        .public-toggle { display: none; }
-        .edit-mode .public-toggle { display: flex; }
+        /* Toggle Switch */
+        .toggle-checkbox:checked { right: 0; border-color: #22c55e; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #22c55e; }
+        .toggle-checkbox { right: 0; z-index: 1; border-color: #e2e8f0; transition: all 0.3s; }
+        .toggle-label { width: 3rem; height: 1.5rem; background-color: #64748b; border-radius: 9999px; transition: all 0.3s; }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1f2937; }
-        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        /* LED Matrix Styles */
+        .led {
+            width: 100%; aspect-ratio: 1;
+            background-color: #334155; border-radius: 4px;
+            cursor: pointer; transition: all 0.1s;
+        }
+        .led.active { background-color: #ef4444; box-shadow: 0 0 10px #ef4444; }
+
+        /* Range Slider */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 20px; width: 20px;
+            border-radius: 50%; background: #38bdf8; cursor: pointer; margin-top: -6px;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 8px; cursor: pointer; background: #334155; border-radius: 4px;
+        }
+        
+        /* Hide number input spinners */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+        /* Edit Mode Styles */
+        body.is-editing .ui-editable {
+            border-bottom: 1px dashed #facc15;
+            border-radius: 0;
+            transition: border 0.2s;
+            cursor: text !important;
+        }
+        body:not(.is-editing) .ui-editable { border-bottom: 1px solid transparent; }
+        body:not(.is-editing) .ui-editable-btn { pointer-events: none; }
+        
+        /* Message Box instead of Alert */
+        #msg-box { transition: opacity 0.3s, transform 0.3s; }
     </style>
 </head>
-<body class="h-screen flex flex-col">
+<body class="bg-slate-900 text-white min-h-screen flex flex-col p-4 md:p-6 overflow-x-hidden">
 
-    <!-- Top Navigation -->
-    <header class="bg-gray-800 border-b border-gray-700 p-4 flex flex-wrap justify-between items-center shrink-0 z-10 shadow-md">
-        <div class="flex items-center gap-4 mb-2 sm:mb-0">
-            <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">MakerLink IDE</h1>
-            <button id="btnConnect" onclick="connectBluetooth()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg transition transform active:scale-95">
+    <!-- Message Box (replaces alerts) -->
+    <div id="msg-box" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-xl shadow-2xl z-50 opacity-0 pointer-events-none font-bold text-center border-2 border-red-400">
+        Message
+    </div>
+
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row justify-between items-center bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-700 mb-6 gap-4 md:gap-0">
+        <h1 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+            MakerLink IDE
+        </h1>
+        <div class="flex flex-wrap gap-3 justify-center">
+            <button id="btnConnect" onclick="connectBluetooth()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-lg">
                 🔌 Connect to micro:bit
             </button>
-        </div>
-        
-        <div class="flex items-center gap-4">
-            <button id="btnLock" onclick="toggleEditMode()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg border border-gray-600 shadow transition flex items-center gap-2">
-                <span>🔒</span> <span id="lockText">Run Mode</span>
+            <button id="btn-edit" onclick="toggleEditMode()" class="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors min-w-[140px] shadow-lg">
+                🔒 Lock UI
             </button>
-            <button id="btnCloud" onclick="toggleCloud()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-lg shadow transition flex items-center gap-2">
-                <span>☁️</span> Go Public
+            <button id="btn-cloud" onclick="toggleCloud()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-lg transition-colors min-w-[140px] shadow-lg">
+                ☁️ Go Public
+            </button>
+            <button id="btn-sim" onclick="toggleSim()" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg transition-colors min-w-[130px] shadow-lg">
+                🧪 Sim Mode
             </button>
         </div>
     </header>
 
-    <!-- Cloud Sync Payload Area (Hidden by Default) -->
-    <div id="cloudArea" class="hidden bg-gray-900 border-b border-gray-700 p-4 shrink-0 shadow-inner">
-        <div class="flex justify-between items-center mb-2">
-            <h3 class="font-bold text-purple-400">Cloud Sync JSON Payload (Live)</h3>
-            <span class="text-xs text-gray-400">Enable switches on cards in Edit Mode to include them</span>
-        </div>
-        <textarea id="cloudPayload" class="w-full h-24 bg-gray-800 text-green-400 font-mono text-sm p-2 rounded border border-gray-700 focus:outline-none" readonly></textarea>
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-6">
+        <button id="tab-basic" onclick="switchTab('basic')" class="flex-1 py-3 bg-blue-500/20 text-blue-400 border border-blue-500/50 font-bold rounded-lg transition-all shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+            ⭐ Basic Mode (Digital Twin)
+        </button>
+        <button id="tab-adv" onclick="switchTab('adv')" class="flex-1 py-3 bg-slate-800 text-slate-400 border border-slate-700 font-bold rounded-lg hover:bg-slate-700 transition-all">
+            🚀 Advanced Mode (MOTION:BIT)
+        </button>
     </div>
 
-    <!-- 3-COLUMN MAIN LAYOUT -->
-    <div class="flex-1 overflow-y-auto p-4 bg-gray-900">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-screen-2xl mx-auto">
-            
-            <!-- COLUMN 1: Digital Twin (Basic micro:bit) -->
-            <div class="flex flex-col gap-4">
-                <h2 class="text-xl font-bold text-gray-300 border-b border-gray-700 pb-2">Digital Twin</h2>
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <!-- Temp -->
-                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-lg flex flex-col items-center">
-                        <span class="text-gray-400 text-sm font-semibold tracking-wider uppercase">Temperature</span>
-                        <div class="text-3xl font-bold text-emerald-400 mt-2"><span id="val-temp">--</span>°C</div>
-                    </div>
-                    <!-- Light -->
-                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-lg flex flex-col items-center">
-                        <span class="text-gray-400 text-sm font-semibold tracking-wider uppercase">Light</span>
-                        <div class="text-3xl font-bold text-yellow-400 mt-2"><span id="val-light">--</span></div>
-                    </div>
-                    <!-- Sound -->
-                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-lg flex flex-col items-center">
-                        <span class="text-gray-400 text-sm font-semibold tracking-wider uppercase">Sound</span>
-                        <div class="text-3xl font-bold text-blue-400 mt-2"><span id="val-sound">--</span></div>
-                    </div>
-                    <!-- Heading -->
-                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-lg flex flex-col items-center">
-                        <span class="text-gray-400 text-sm font-semibold tracking-wider uppercase">Compass</span>
-                        <div class="text-3xl font-bold text-purple-400 mt-2"><span id="val-head">--</span>°</div>
-                    </div>
-                </div>
-
-                <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-lg flex justify-around">
-                    <div class="text-center">
-                        <span class="text-gray-400 text-sm font-semibold uppercase">Pitch</span>
-                        <div class="text-2xl font-bold text-pink-400 mt-1"><span id="val-pitch">--</span>°</div>
-                    </div>
-                    <div class="text-center">
-                        <span class="text-gray-400 text-sm font-semibold uppercase">Roll</span>
-                        <div class="text-2xl font-bold text-cyan-400 mt-1"><span id="val-roll">--</span>°</div>
-                    </div>
-                </div>
-
-                <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-lg flex justify-around items-center">
-                    <div class="text-center flex flex-col items-center">
-                        <span class="text-gray-400 text-xs font-bold mb-2">BTN A</span>
-                        <div id="val-btnA" class="w-6 h-6 rounded-full bg-gray-600 transition-colors shadow-inner"></div>
-                    </div>
-                    <div class="text-center flex flex-col items-center">
-                        <span class="text-gray-400 text-xs font-bold mb-2">BTN B</span>
-                        <div id="val-btnB" class="w-6 h-6 rounded-full bg-gray-600 transition-colors shadow-inner"></div>
-                    </div>
-                    <div class="text-center flex flex-col items-center">
-                        <span class="text-gray-400 text-xs font-bold mb-2">SHAKE</span>
-                        <div id="val-shk" class="w-6 h-6 rounded-full bg-gray-600 transition-colors shadow-inner"></div>
-                    </div>
+    <!-- Basic Mode Content -->
+    <div id="content-basic" class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
+        <!-- Digital Twin -->
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col items-center justify-center">
+            <h2 class="text-xl font-bold mb-6 text-slate-300">Digital Twin</h2>
+            <div class="bg-slate-950 p-6 rounded-[2rem] border-b-8 border-slate-900 w-64 shadow-2xl relative">
+                <div class="flex justify-between items-center px-2 mb-2">
+                    <button id="twin-btnA" class="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold shadow-inner transition-colors">A</button>
+                    <div class="grid grid-cols-5 gap-2 bg-black p-3 rounded-lg w-full mx-4" id="led-matrix"></div>
+                    <button id="twin-btnB" class="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold shadow-inner transition-colors">B</button>
                 </div>
             </div>
+        </div>
 
-            <!-- COLUMN 2: MOTION:BIT Motors -->
-            <div class="flex flex-col gap-4">
-                <h2 class="text-xl font-bold text-gray-300 border-b border-gray-700 pb-2">Actuators</h2>
-                <div class="grid grid-cols-1 gap-4">
-                    <!-- Generate 4 Motor Cards -->
-                    <script>
-                        for(let i=1; i<=4; i++) {
-                            document.write(`
-                                <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-lg" id="card-m${i}">
-                                    <div class="flex justify-between items-center mb-3">
-                                        <h3 class="font-bold text-emerald-400 editable" contenteditable="false" data-key="title-m${i}">DC Motor ${i}</h3>
-                                        <div class="public-toggle flex items-center gap-2">
-                                            <span class="text-xs text-gray-400">Public</span>
-                                            <div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
-                                                <input type="checkbox" id="pub-m${i}" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
-                                                <label for="pub-m${i}" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer"></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-4 mb-3">
-                                        <input type="range" min="-255" max="255" value="0" class="w-full accent-emerald-500 cursor-pointer" oninput="document.getElementById('val-m${i}').innerText=this.value; sendCommand('M${i}:'+this.value);" id="slider-m${i}">
-                                        <span id="val-m${i}" class="text-lg font-mono font-bold w-12 text-right text-gray-200">0</span>
-                                    </div>
-                                    <button onclick="document.getElementById('slider-m${i}').value=0; document.getElementById('val-m${i}').innerText='0'; sendCommand('M${i}:0');" class="w-full bg-red-900/40 hover:bg-red-600 text-red-200 py-2 rounded transition border border-red-800 font-bold tracking-wider">STOP</button>
-                                </div>
-                            `);
-                        }
-                    </script>
+        <!-- Instruments -->
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col gap-6">
+            <h2 class="text-xl font-bold text-slate-300">Instruments</h2>
+            <div id="shake-indicator" class="bg-slate-700 text-slate-400 text-center py-2 rounded-lg font-bold uppercase transition-colors border border-slate-600">No Shake</div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-900 p-4 rounded-lg flex flex-col items-center border border-slate-700 shadow-inner">
+                    <span class="text-sm font-bold text-slate-400 mb-2">PITCH</span>
+                    <div class="h-24 w-12 bg-slate-800 rounded-full relative overflow-hidden flex justify-center border border-slate-700">
+                        <div id="pitch-bar" class="w-full h-1 bg-green-500 absolute top-1/2 transition-transform duration-200 shadow-[0_0_8px_#22c55e]"></div>
+                    </div>
+                    <span id="val-pitch" class="mt-2 font-mono text-green-400 font-bold">0°</span>
+                </div>
+                <div class="bg-slate-900 p-4 rounded-lg flex flex-col items-center border border-slate-700 shadow-inner">
+                    <span class="text-sm font-bold text-slate-400 mb-2">ROLL</span>
+                    <div class="h-24 w-24 bg-slate-800 rounded-full relative overflow-hidden flex justify-center items-center border-2 border-slate-700 shadow-inner">
+                        <div id="roll-horizon" class="w-full h-full absolute transition-transform duration-200 flex flex-col">
+                            <div class="h-1/2 w-full bg-blue-500/30 border-b-2 border-blue-500 shadow-[0_4px_10px_rgba(59,130,246,0.4)]"></div>
+                        </div>
+                    </div>
+                    <span id="val-roll" class="mt-2 font-mono text-blue-400 font-bold">0°</span>
                 </div>
             </div>
+            <div class="bg-slate-900 p-4 rounded-lg flex flex-col items-center border border-slate-700 shadow-inner">
+                <span class="text-sm font-bold text-slate-400 mb-2">COMPASS</span>
+                <div class="h-24 w-24 rounded-full border-4 border-slate-700 flex justify-center items-center relative bg-slate-800">
+                    <div id="compass-needle" class="w-1.5 h-20 bg-red-500 absolute transition-transform duration-200 shadow-lg" style="clip-path: polygon(50% 0%, 0% 100%, 100% 100%);"></div>
+                </div>
+                <span id="val-compass" class="mt-2 font-mono text-red-400 font-bold">0° N</span>
+            </div>
+        </div>
 
-            <!-- COLUMN 3: External Telemetry & Charts -->
-            <div class="flex flex-col gap-4">
-                <h2 class="text-xl font-bold text-gray-300 border-b border-gray-700 pb-2">Telemetry</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
-                    <!-- Generate 4 Sensor Cards (Kept to 4 for clean 3-column height balance) -->
-                    <script>
-                        for(let i=1; i<=4; i++) {
-                            document.write(`
-                                <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-lg flex flex-col" id="card-s${i}">
-                                    <div class="flex justify-between items-start mb-1">
-                                        <h3 class="font-bold text-blue-400 editable" contenteditable="false" data-key="title-s${i}">Sensor ${i}</h3>
-                                        <div class="public-toggle flex items-center gap-2">
-                                            <input type="checkbox" id="pub-s${i}" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
-                                            <label for="pub-s${i}" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer"></label>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-baseline gap-1 mt-1">
-                                        <span id="val-s${i}" class="text-3xl font-bold text-gray-100 ext-value">0</span>
-                                        <span class="text-gray-400 editable ext-unit font-bold text-sm" contenteditable="false" data-key="unit-s${i}">unit</span>
-                                    </div>
-                                    <div class="w-full h-20 mt-2 bg-gray-900/50 rounded p-1 border border-gray-750">
-                                        <canvas id="chart-s${i}"></canvas>
-                                    </div>
-                                </div>
-                            `);
-                        }
-                    </script>
+        <!-- Telemetry & Controls -->
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col gap-6">
+            <h2 class="text-xl font-bold text-slate-300">Telemetry & Controls</h2>
+            <div class="bg-slate-900 p-2 rounded-lg border border-slate-700 h-48 relative w-full shadow-inner">
+                <canvas id="telemetryChart"></canvas>
+            </div>
+            <div class="flex flex-col gap-3 mt-auto">
+                <div class="flex gap-2">
+                    <input type="text" id="cmd-txt" placeholder="Type message..." class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 font-mono text-white">
+                    <button onclick="sendBluetoothCommand('TXT:' + document.getElementById('cmd-txt').value)" class="bg-blue-600 hover:bg-blue-500 px-4 rounded-lg font-bold text-sm transition-colors shadow-lg">SEND</button>
+                </div>
+                <div class="flex gap-2">
+                    <select id="cmd-ico" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none font-mono text-white">
+                        <option value="Heart">❤️ Heart</option>
+                        <option value="Happy">😀 Happy</option>
+                        <option value="Ghost">👻 Ghost</option>
+                    </select>
+                    <button onclick="sendBluetoothCommand('ICO:' + document.getElementById('cmd-ico').value)" class="bg-pink-600 hover:bg-pink-500 px-4 rounded-lg font-bold text-sm transition-colors shadow-lg">SHOW</button>
+                </div>
+                <div class="flex gap-2">
+                    <select id="cmd-snd" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none font-mono text-white">
+                        <option value="BaDing">BaDing</option>
+                        <option value="PowerUp">PowerUp</option>
+                        <option value="Wawawawa">Wawawawa</option>
+                    </select>
+                    <button onclick="sendBluetoothCommand('SND:' + document.getElementById('cmd-snd').value)" class="bg-teal-600 hover:bg-teal-500 px-4 rounded-lg font-bold text-sm transition-colors shadow-lg">PLAY</button>
                 </div>
             </div>
-            
+        </div>
+    </div>
+
+    <!-- Advanced Mode Content -->
+    <div id="content-adv" class="hidden flex-col gap-8 flex-1">
+        <!-- Ext Sensors -->
+        <div>
+            <h3 class="text-xl font-bold text-emerald-400 mb-4 flex items-center gap-2">🔌 EXTERNAL SENSORS (1-8)</h3>
+            <div id="grid-sensors" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"></div>
+        </div>
+        <!-- DC Motors -->
+        <div>
+            <h3 class="text-xl font-bold text-orange-400 mb-4 flex items-center gap-2">⚙️ DC MOTORS (M1-M4)</h3>
+            <div id="grid-motors" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"></div>
+        </div>
+        <!-- Servos -->
+        <div>
+            <h3 class="text-xl font-bold text-blue-400 mb-4 flex items-center gap-2">🦾 SERVOS (S1-S8)</h3>
+            <div id="grid-servos" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"></div>
         </div>
     </div>
 
     <script>
-        // ==========================================
-        // MASTER LOCK & CLOUD SYNC LOGIC
-        // ==========================================
-        let isEditMode = false;
-        let isCloudActive = false;
-        const charts = {}; 
-
-        function toggleEditMode() {
-            isEditMode = !isEditMode;
-            const btn = document.getElementById('btnLock');
-            const txt = document.getElementById('lockText');
-            
-            if(isEditMode) {
-                document.body.classList.add('edit-mode');
-                txt.innerText = "Editing UI";
-                btn.classList.replace('bg-gray-700', 'bg-red-600');
-                btn.classList.replace('hover:bg-gray-600', 'hover:bg-red-500');
-                btn.classList.replace('border-gray-600', 'border-red-500');
-                btn.querySelector('span').innerText = "🔓";
-                document.querySelectorAll('.editable').forEach(el => el.setAttribute('contenteditable', 'true'));
-            } else {
-                document.body.classList.remove('edit-mode');
-                txt.innerText = "Run Mode";
-                btn.classList.replace('bg-red-600', 'bg-gray-700');
-                btn.classList.replace('hover:bg-red-500', 'hover:bg-gray-600');
-                btn.classList.replace('border-red-500', 'border-gray-600');
-                btn.querySelector('span').innerText = "🔒";
-                document.querySelectorAll('.editable').forEach(el => el.setAttribute('contenteditable', 'false'));
-                saveTitles(); 
-            }
-        }
-
-        function toggleCloud() {
-            isCloudActive = !isCloudActive;
-            const area = document.getElementById('cloudArea');
-            const btn = document.getElementById('btnCloud');
-            if(isCloudActive) {
-                area.classList.remove('hidden');
-                btn.classList.replace('bg-purple-600', 'bg-green-600');
-                btn.classList.replace('hover:bg-purple-500', 'hover:bg-green-500');
-                btn.innerText = "☁️ Sync Active";
-                updateCloudPayload();
-            } else {
-                area.classList.add('hidden');
-                btn.classList.replace('bg-green-600', 'bg-purple-600');
-                btn.classList.replace('hover:bg-green-500', 'hover:bg-purple-500');
-                btn.innerText = "☁️ Go Public";
-            }
-        }
-
-        function updateCloudPayload() {
-            if(!isCloudActive) return;
-            const payload = { timestamp: Date.now(), motors: {}, sensors: {} };
-            
-            for(let i=1; i<=4; i++) {
-                if(document.getElementById(`pub-m${i}`).checked) {
-                    let title = document.querySelector(`[data-key="title-m${i}"]`).innerText;
-                    let val = document.getElementById(`slider-m${i}`).value;
-                    payload.motors[title] = parseInt(val);
-                }
-            }
-            for(let i=1; i<=4; i++) {
-                if(document.getElementById(`pub-s${i}`).checked) {
-                    let title = document.querySelector(`[data-key="title-s${i}"]`).innerText;
-                    let val = document.getElementById(`val-s${i}`).innerText;
-                    let unit = document.querySelector(`[data-key="unit-s${i}"]`).innerText;
-                    payload.sensors[title] = { value: parseFloat(val) || 0, unit: unit };
-                }
-            }
-            document.getElementById('cloudPayload').value = JSON.stringify(payload, null, 2);
-        }
-
-        function saveTitles() {
-            document.querySelectorAll('.editable').forEach(el => {
-                localStorage.setItem(el.getAttribute('data-key'), el.innerText);
-            });
-        }
-
-        function loadTitles() {
-            document.querySelectorAll('.editable').forEach(el => {
-                let saved = localStorage.getItem(el.getAttribute('data-key'));
-                if(saved) el.innerText = saved;
-            });
-        }
-
-        // ==========================================
-        // CHART.JS SETUP
-        // ==========================================
-        function initCharts() {
-            for(let i=1; i<=4; i++) {
-                const ctx = document.getElementById(`chart-s${i}`).getContext('2d');
-                charts[`s${i}`] = new Chart(ctx, {
-                    type: 'line',
-                    data: { labels: [], datasets: [{ data: [], borderColor: '#60A5FA', borderWidth: 2, pointRadius: 0, tension: 0.3 }] },
-                    options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: true, ticks: { color: '#6B7280', maxTicksLimit: 3 }, grid: { color: '#374151' } } }, plugins: { legend: { display: false } }, animation: false }
-                });
-            }
-        }
-        
-        function updateChart(id, value) {
-            if(!charts[id]) return;
-            const chart = charts[id];
-            chart.data.labels.push('');
-            chart.data.datasets[0].data.push(value);
-            if(chart.data.labels.length > 20) {
-                chart.data.labels.shift();
-                chart.data.datasets[0].data.shift();
-            }
-            chart.update();
-        }
-
-        // ==========================================
-        // FIXED WEB BLUETOOTH UART LOGIC
-        // ==========================================
-        let bluetoothDevice;
-        let bluetoothServer;
-        let uartService;
-        let rxCharacteristic; // Web App listens on 0002
-        let txCharacteristic; // Web App writes to 0003
-
-        async function connectBluetooth() {
-            try {
-                console.log("Requesting Bluetooth Device...");
-                bluetoothDevice = await navigator.bluetooth.requestDevice({
-                    filters: [{ namePrefix: 'BBC micro:bit' }],
-                    optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e'] 
-                });
-
-                console.log("Connecting to GATT Server...");
-                bluetoothServer = await bluetoothDevice.gatt.connect();
-
-                console.log("Getting UART Service...");
-                uartService = await bluetoothServer.getPrimaryService('6e400001-b5a3-f393-e0a9-e50e24dcca9e');
-
-                console.log("Getting TX/RX Characteristics...");
-                
-                // FIXED UUIDs for micro:bit hardware inversion
-                rxCharacteristic = await uartService.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e'); // 0002 is Notify
-                txCharacteristic = await uartService.getCharacteristic('6e400003-b5a3-f393-e0a9-e50e24dcca9e'); // 0003 is Write
-
-                await rxCharacteristic.startNotifications();
-                rxCharacteristic.addEventListener('characteristicvaluechanged', handleIncomingData);
-
-                document.getElementById("btnConnect").innerHTML = "✅ Connected";
-                document.getElementById("btnConnect").classList.replace("bg-blue-600", "bg-green-600");
-                console.log("Bluetooth Connected Successfully!");
-
-            } catch (error) {
-                console.error("Bluetooth Connection Error: ", error);
-                alert("Bluetooth connection failed. Check browser console.");
-            }
-        }
-
-        async function sendCommand(cmd) {
-            if (!txCharacteristic) return;
-            try {
-                let encoder = new TextEncoder();
-                let data = encoder.encode(cmd + "\n");
-                
-                if (txCharacteristic.properties.writeWithoutResponse) {
-                    await txCharacteristic.writeValueWithoutResponse(data);
-                } else {
-                    await txCharacteristic.writeValue(data);
-                }
-            } catch (error) {
-                console.error('Send Error:', error);
-            }
-        }
-
-        let incomingBuffer = "";
-        function handleIncomingData(event) {
-            let decoder = new TextDecoder('utf-8');
-            let chunk = decoder.decode(event.target.value);
-            incomingBuffer += chunk;
-            
-            let lines = incomingBuffer.split('\n');
-            incomingBuffer = lines.pop(); // Keep incomplete fragments in buffer
-
-            for(let line of lines) {
-                parseTelemetry(line.trim());
-            }
-            if(isCloudActive) updateCloudPayload();
-        }
-
-        function parseTelemetry(dataStr) {
-            if(!dataStr) return;
-            let pairs = dataStr.split(',');
-            for(let pair of pairs) {
-                let [key, val] = pair.split(':');
-                if(!key || val === undefined) continue;
-                
-                if(document.getElementById(`val-${key}`)) {
-                    if(key === 'btnA' || key === 'btnB' || key === 'shk') {
-                        document.getElementById(`val-${key}`).classList.replace(
-                            val == "1" ? 'bg-gray-600' : 'bg-red-500', 
-                            val == "1" ? 'bg-red-500' : 'bg-gray-600'
-                        );
-                    } else {
-                        document.getElementById(`val-${key}`).innerText = val;
-                    }
-                }
-                
-                if(key.match(/^s[1-4]$/)) {
-                    if(document.getElementById(`val-${key}`)) {
-                        document.getElementById(`val-${key}`).innerText = val;
-                        updateChart(key, parseFloat(val));
-                    }
-                }
-            }
-        }
-
-        // Initialize App
-        window.onload = () => {
-            loadTitles();
-            initCharts();
-        };
-    </script>
-</body>
-</html>
+        // --- State ---
+        let currentTab = 'basic';
+        let isSimActive = false, simInterval = null;
+        let isCloudActive = false, cloudRoomId = null, cloudInterval =
