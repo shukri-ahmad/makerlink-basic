@@ -9,13 +9,11 @@
     <style>
         body { font-family: 'Inter', system-ui, sans-serif; }
         
-        /* Toggle Switch */
         .toggle-checkbox:checked { right: 0; border-color: #22c55e; }
         .toggle-checkbox:checked + .toggle-label { background-color: #22c55e; }
         .toggle-checkbox { right: 0; z-index: 1; border-color: #e2e8f0; transition: all 0.3s; }
         .toggle-label { width: 3rem; height: 1.5rem; background-color: #64748b; border-radius: 9999px; transition: all 0.3s; }
 
-        /* LED Matrix Styles */
         .led {
             width: 100%; aspect-ratio: 1;
             background-color: #334155; border-radius: 4px;
@@ -23,7 +21,6 @@
         }
         .led.active { background-color: #ef4444; box-shadow: 0 0 10px #ef4444; }
 
-        /* Range Slider */
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none; height: 20px; width: 20px;
@@ -33,11 +30,9 @@
             width: 100%; height: 8px; cursor: pointer; background: #334155; border-radius: 4px;
         }
         
-        /* Hide number input spinners */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
-        /* Edit Mode Styles */
         body.is-editing .ui-editable {
             border-bottom: 1px dashed #facc15;
             border-radius: 0;
@@ -47,13 +42,14 @@
         body:not(.is-editing) .ui-editable { border-bottom: 1px solid transparent; }
         body:not(.is-editing) .ui-editable-btn { pointer-events: none; }
         
-        /* Message Box instead of Alert */
         #msg-box { transition: opacity 0.3s, transform 0.3s; }
+        
+        /* Button Press Animation */
+        .btn-press { transform: scale(0.85); background-color: #ef4444 !important; box-shadow: inset 0 4px 8px rgba(0,0,0,0.6) !important; }
     </style>
 </head>
 <body class="bg-slate-900 text-white min-h-screen flex flex-col p-4 md:p-6 overflow-x-hidden">
 
-    <!-- Message Box (replaces alerts) -->
     <div id="msg-box" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-xl shadow-2xl z-50 opacity-0 pointer-events-none font-bold text-center border-2 border-red-400">
         Message
     </div>
@@ -91,14 +87,21 @@
 
     <!-- Basic Mode Content -->
     <div id="content-basic" class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
+        
         <!-- Digital Twin -->
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col items-center justify-center">
             <h2 class="text-xl font-bold mb-6 text-slate-300">Digital Twin</h2>
-            <div class="bg-slate-950 p-6 rounded-[2rem] border-b-8 border-slate-900 w-64 shadow-2xl relative">
+            <div class="bg-slate-950 p-6 rounded-[2rem] border-b-8 border-slate-900 w-64 shadow-2xl relative pt-2">
+                <!-- Touch Logo (Shake target) -->
+                <div class="flex justify-center mb-4">
+                    <div id="twin-logo" class="w-10 h-4 bg-slate-800 rounded-b-lg border-b-2 border-yellow-600 flex justify-center items-end pb-0.5 transition-all duration-100">
+                        <span class="text-[8px] font-bold text-yellow-600">LOGO</span>
+                    </div>
+                </div>
                 <div class="flex justify-between items-center px-2 mb-2">
-                    <button id="twin-btnA" class="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold shadow-inner transition-colors">A</button>
+                    <button id="twin-btnA" class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] transition-all duration-75">A</button>
                     <div class="grid grid-cols-5 gap-2 bg-black p-3 rounded-lg w-full mx-4" id="led-matrix"></div>
-                    <button id="twin-btnB" class="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold shadow-inner transition-colors">B</button>
+                    <button id="twin-btnB" class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] transition-all duration-75">B</button>
                 </div>
             </div>
         </div>
@@ -115,10 +118,11 @@
                     </div>
                     <span id="val-pitch" class="mt-2 font-mono text-green-400 font-bold">0°</span>
                 </div>
-                <div class="bg-slate-900 p-4 rounded-lg flex flex-col items-center border border-slate-700 shadow-inner">
+                <div class="bg-slate-900 p-4 rounded-lg flex flex-col items-center border border-slate-700 shadow-inner overflow-hidden">
                     <span class="text-sm font-bold text-slate-400 mb-2">ROLL</span>
+                    <!-- Oversized container to prevent clipping when rotated -->
                     <div class="h-24 w-24 bg-slate-800 rounded-full relative overflow-hidden flex justify-center items-center border-2 border-slate-700 shadow-inner">
-                        <div id="roll-horizon" class="w-full h-full absolute transition-transform duration-200 flex flex-col">
+                        <div id="roll-horizon" class="w-[150%] h-[150%] absolute transition-transform duration-200 flex flex-col">
                             <div class="h-1/2 w-full bg-blue-500/30 border-b-2 border-blue-500 shadow-[0_4px_10px_rgba(59,130,246,0.4)]"></div>
                         </div>
                     </div>
@@ -135,12 +139,26 @@
         </div>
 
         <!-- Telemetry & Controls -->
-        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col gap-6">
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col gap-4">
             <h2 class="text-xl font-bold text-slate-300">Telemetry & Controls</h2>
-            <div class="bg-slate-900 p-2 rounded-lg border border-slate-700 h-48 relative w-full shadow-inner">
-                <canvas id="telemetryChart"></canvas>
+            
+            <!-- 3 Separate Mini Charts -->
+            <div class="flex flex-col gap-2 flex-1">
+                <div class="bg-slate-900 p-2 rounded-lg border border-slate-700 h-16 w-full shadow-inner flex items-center">
+                    <span class="text-[10px] font-bold text-orange-400 w-10">TEMP</span>
+                    <div class="flex-1 h-full"><canvas id="chart-temp"></canvas></div>
+                </div>
+                <div class="bg-slate-900 p-2 rounded-lg border border-slate-700 h-16 w-full shadow-inner flex items-center">
+                    <span class="text-[10px] font-bold text-yellow-400 w-10">LIGHT</span>
+                    <div class="flex-1 h-full"><canvas id="chart-light"></canvas></div>
+                </div>
+                <div class="bg-slate-900 p-2 rounded-lg border border-slate-700 h-16 w-full shadow-inner flex items-center">
+                    <span class="text-[10px] font-bold text-cyan-400 w-10">SOUND</span>
+                    <div class="flex-1 h-full"><canvas id="chart-sound"></canvas></div>
+                </div>
             </div>
-            <div class="flex flex-col gap-3 mt-auto">
+
+            <div class="flex flex-col gap-3 mt-2">
                 <div class="flex gap-2">
                     <input type="text" id="cmd-txt" placeholder="Type message..." class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 font-mono text-white">
                     <button onclick="sendBluetoothCommand('TXT:' + document.getElementById('cmd-txt').value)" class="bg-blue-600 hover:bg-blue-500 px-4 rounded-lg font-bold text-sm transition-colors shadow-lg">SEND</button>
@@ -165,19 +183,16 @@
         </div>
     </div>
 
-    <!-- Advanced Mode Content -->
+    <!-- Advanced Mode Content (Unchanged) -->
     <div id="content-adv" class="hidden flex-col gap-8 flex-1">
-        <!-- Ext Sensors -->
         <div>
             <h3 class="text-xl font-bold text-emerald-400 mb-4 flex items-center gap-2">🔌 EXTERNAL SENSORS (1-8)</h3>
             <div id="grid-sensors" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"></div>
         </div>
-        <!-- DC Motors -->
         <div>
             <h3 class="text-xl font-bold text-orange-400 mb-4 flex items-center gap-2">⚙️ DC MOTORS (M1-M4)</h3>
             <div id="grid-motors" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"></div>
         </div>
-        <!-- Servos -->
         <div>
             <h3 class="text-xl font-bold text-blue-400 mb-4 flex items-center gap-2">🦾 SERVOS (S1-S8)</h3>
             <div id="grid-servos" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"></div>
@@ -193,34 +208,26 @@
         const advancedData = {};
         const toggleStates = {};
         
-        // Sensor charts storage
         const sensorCharts = {};
-        const maxDataPoints = {}; // Stores x-max for each sensor
+        const maxDataPoints = {};
 
-        // FIXED Bluetooth Variables
+        // Bluetooth Variables
         let bluetoothDevice;
         let bluetoothServer;
         let uartService;
-        let rxCharacteristic; // Listens to micro:bit
-        let txCharacteristic; // Sends to micro:bit
-        
+        let rxCharacteristic;
+        let txCharacteristic;
         const UART_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
-        const UART_RX_CHAR_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // 0002 is Notify (Listen)
-        const UART_TX_CHAR_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // 0003 is Write (Send)
+        const UART_RX_CHAR_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+        const UART_TX_CHAR_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
         let rxBuffer = '';
 
-        // --- Init ---
         window.onload = () => {
-            try {
-                initLEDs();
-                initChart();
-                generateAdvancedCards();
-            } catch (e) {
-                console.error("Initialization Error:", e);
-            }
+            initLEDs();
+            initCharts();
+            generateAdvancedCards();
         };
 
-        // --- Custom Message Box ---
         function showMsg(msg) {
             const box = document.getElementById('msg-box');
             box.innerText = msg;
@@ -232,7 +239,6 @@
             }, 4000);
         }
 
-        // --- Edit Mode ---
         function toggleEditMode() {
             isEditMode = !isEditMode;
             const btn = document.getElementById('btn-edit');
@@ -249,7 +255,6 @@
             }
         }
 
-        // --- UI Setup Basic ---
         function initLEDs() {
             const matrix = document.getElementById('led-matrix');
             for(let i=0; i<25; i++) {
@@ -267,22 +272,38 @@
             }
         }
 
-        let myChart;
-        function initChart() {
-            const ctx = document.getElementById('telemetryChart').getContext('2d');
+        let chartTemp, chartLight, chartSound;
+        function initCharts() {
             Chart.defaults.color = '#94a3b8';
-            myChart = new Chart(ctx, {
+            
+            const createConfig = (color, maxVal) => ({
                 type: 'line',
-                data: { labels: [], datasets: [
-                    { label: 'Temp', borderColor: '#fb923c', data: [], tension: 0.4, pointRadius: 0, borderWidth: 2 },
-                    { label: 'Light', borderColor: '#facc15', data: [], tension: 0.4, pointRadius: 0, borderWidth: 2 },
-                    { label: 'Sound', borderColor: '#22d3ee', data: [], tension: 0.4, pointRadius: 0, borderWidth: 2 }
-                ]},
-                options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { border: {display: false}, grid: {color: '#334155', drawBorder: false} } } }
+                data: { labels: [], datasets: [{ borderColor: color, data: [], tension: 0.4, pointRadius: 0, borderWidth: 2 }] },
+                options: { 
+                    responsive: true, maintainAspectRatio: false, animation: false, 
+                    plugins: { legend: { display: false } }, 
+                    scales: { 
+                        x: { display: false }, 
+                        y: { min: 0, max: maxVal, border: {display: false}, ticks: { maxTicksLimit: 3 }, grid: {color: '#334155', drawBorder: false} } 
+                    } 
+                }
             });
+
+            chartTemp = new Chart(document.getElementById('chart-temp').getContext('2d'), createConfig('#fb923c', 50));
+            chartLight = new Chart(document.getElementById('chart-light').getContext('2d'), createConfig('#facc15', 255));
+            chartSound = new Chart(document.getElementById('chart-sound').getContext('2d'), createConfig('#22d3ee', 255));
         }
 
-        // --- Tab Logic ---
+        function pushMainChart(chart, val) {
+            chart.data.labels.push('');
+            chart.data.datasets[0].data.push(val);
+            if(chart.data.labels.length > 20) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+            }
+            chart.update();
+        }
+
         function switchTab(tab) {
             currentTab = tab;
             const btnBasic = document.getElementById('tab-basic');
@@ -301,7 +322,6 @@
             }
         }
 
-        // --- Advanced UI ---
         function generateAdvancedCards() {
             const gridSensors = document.getElementById('grid-sensors');
             for(let i=1; i<=8; i++) {
@@ -466,7 +486,6 @@
             chart.update();
         }
 
-        // --- Controls logic ---
         function updateVal(id, val) {
             document.getElementById(`val-${id}`).innerText = val + (id.startsWith('S') ? '°' : '');
             advancedData[id] = Number(val);
@@ -502,38 +521,28 @@
             updateBadges();
         }
 
-        // --- Bluetooth Logic ---
         async function connectBluetooth() {
-            console.log("Connect button clicked. Checking prerequisites...");
-            
             if(isSimActive) {
                 showMsg("Please turn off Sim Mode before connecting to real hardware.");
                 return;
             }
             
             if (!navigator || !navigator.bluetooth) {
-                console.error("navigator.bluetooth is undefined.");
                 showMsg("Web Bluetooth API is missing! Make sure you are using Chrome or Edge, and serving via HTTPS.");
                 return;
             }
             
             try {
-                console.log("Requesting Bluetooth Device...");
                 bluetoothDevice = await navigator.bluetooth.requestDevice({
                     filters: [{ namePrefix: 'BBC micro:bit' }],
                     optionalServices: [UART_SERVICE_UUID]
                 });
 
-                console.log("Connecting to GATT Server...");
                 bluetoothServer = await bluetoothDevice.gatt.connect();
-
-                console.log("Getting UART Service...");
                 uartService = await bluetoothServer.getPrimaryService(UART_SERVICE_UUID);
 
-                console.log("Getting TX/RX Characteristics...");
-                // FIXED: micro:bit listens on 0002, receives on 0003
-                rxCharacteristic = await uartService.getCharacteristic(UART_RX_CHAR_UUID);
                 txCharacteristic = await uartService.getCharacteristic(UART_TX_CHAR_UUID);
+                rxCharacteristic = await uartService.getCharacteristic(UART_RX_CHAR_UUID);
 
                 await rxCharacteristic.startNotifications();
                 rxCharacteristic.addEventListener('characteristicvaluechanged', handleIncomingData);
@@ -542,7 +551,6 @@
                 btn.innerHTML = "✅ Connected to micro:bit";
                 btn.classList.replace("bg-blue-600", "bg-green-600");
                 btn.classList.replace("hover:bg-blue-500", "hover:bg-green-500");
-                console.log("Bluetooth Connected Successfully!");
 
                 bluetoothDevice.addEventListener('gattserverdisconnected', () => {
                     const btn = document.getElementById("btnConnect");
@@ -577,17 +585,9 @@
                 if(kv.length === 2) data[kv[0]] = parseFloat(kv[1]);
             });
 
-            if(data.temp !== undefined) {
-                myChart.data.labels.push('');
-                myChart.data.datasets[0].data.push(data.temp);
-                myChart.data.datasets[1].data.push(data.light !== undefined ? data.light : 0);
-                myChart.data.datasets[2].data.push(data.sound !== undefined ? data.sound : 0);
-                if(myChart.data.labels.length > 20) {
-                    myChart.data.labels.shift();
-                    myChart.data.datasets.forEach(ds => ds.data.shift());
-                }
-                myChart.update();
-            }
+            if(data.temp !== undefined) pushMainChart(chartTemp, data.temp);
+            if(data.light !== undefined) pushMainChart(chartLight, data.light);
+            if(data.sound !== undefined) pushMainChart(chartSound, data.sound);
 
             if(data.pitch !== undefined) {
                 document.getElementById('val-pitch').innerText = `${Math.round(data.pitch)}°`;
@@ -602,18 +602,33 @@
                 document.getElementById('compass-needle').style.transform = `rotate(${data.head}deg)`;
             }
 
+            // Button and Logo Press Animations
             if(data.btnA !== undefined) {
-                document.getElementById('twin-btnA').style.backgroundColor = data.btnA ? '#ef4444' : '#334155';
+                const btn = document.getElementById('twin-btnA');
+                if(data.btnA === 1) btn.classList.add('btn-press');
+                else btn.classList.remove('btn-press');
             }
             if(data.btnB !== undefined) {
-                document.getElementById('twin-btnB').style.backgroundColor = data.btnB ? '#ef4444' : '#334155';
+                const btn = document.getElementById('twin-btnB');
+                if(data.btnB === 1) btn.classList.add('btn-press');
+                else btn.classList.remove('btn-press');
             }
 
             const shakeInd = document.getElementById('shake-indicator');
+            const logo = document.getElementById('twin-logo');
+            
             if(data.shk === 1) {
+                // Animate Top Logo
+                logo.classList.add('bg-red-500', 'border-red-600', 'translate-y-1');
+                logo.classList.remove('bg-slate-800', 'border-yellow-600');
+                
+                // Show Shake Text
                 shakeInd.innerText = "SHAKE DETECTED";
                 shakeInd.className = "bg-red-600 text-white text-center py-2 rounded-lg font-bold uppercase transition-colors shadow-[0_0_10px_rgba(220,38,38,0.5)] border border-red-500";
+                
                 setTimeout(() => {
+                    logo.classList.remove('bg-red-500', 'border-red-600', 'translate-y-1');
+                    logo.classList.add('bg-slate-800', 'border-yellow-600');
                     shakeInd.innerText = "No Shake";
                     shakeInd.className = "bg-slate-700 text-slate-400 text-center py-2 rounded-lg font-bold uppercase transition-colors border border-slate-600";
                 }, 800);
@@ -638,8 +653,6 @@
             try {
                 let encoder = new TextEncoder();
                 let data = encoder.encode(cmd + '\n');
-                
-                // Enhanced write support for rapid motor commands
                 if (txCharacteristic.properties.writeWithoutResponse) {
                     await txCharacteristic.writeValueWithoutResponse(data);
                 } else {
@@ -650,7 +663,6 @@
             }
         }
 
-        // --- Cloud Logic ---
         function toggleCloud() {
             isCloudActive = !isCloudActive;
             const btn = document.getElementById('btn-cloud');
@@ -703,7 +715,6 @@
             console.log("☁️ [Cloud Sync]", JSON.stringify(payload));
         }
 
-        // --- Sim Mode ---
         let tick = 0;
         function toggleSim() {
             isSimActive = !isSimActive;
@@ -739,8 +750,12 @@
                 extData += `,Ext${i}:${Math.round(500 + Math.sin(tick + i)*400)}`;
             }
 
-            const simStr = `temp:${t},light:${l},sound:${s},pitch:${p},roll:${r},head:${h},btnA:${btnA},btnB:${btnB},shk:${isShake}${extData}`;
-            parseTelemetry(simStr);
+            // Simulating sequential packet arrival
+            parseTelemetry(`temp:${t}`);
+            parseTelemetry(`light:${l}`);
+            parseTelemetry(`sound:${s}`);
+            parseTelemetry(`pitch:${p},roll:${r},head:${h}`);
+            parseTelemetry(`btnA:${btnA},btnB:${btnB},shk:${isShake}${extData}`);
         }
     </script>
 </body>
