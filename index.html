@@ -91,18 +91,27 @@
         <!-- Digital Twin -->
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col items-center justify-center">
             <h2 class="text-xl font-bold mb-6 text-slate-300">Digital Twin</h2>
-            <div class="bg-slate-950 p-6 sm:p-8 rounded-[2.5rem] border-b-8 border-slate-900 w-72 lg:w-80 shadow-2xl relative pt-3">
-                <div class="flex justify-center mb-5">
-                    <div id="twin-logo" class="w-12 h-5 bg-slate-800 rounded-b-xl border-b-2 border-yellow-600 flex justify-center items-end pb-1 transition-all duration-100">
-                        <span class="text-[9px] font-bold text-yellow-600">LOGO</span>
+            
+            <!-- Enlarged micro:bit Container -->
+            <div class="bg-slate-950 p-6 sm:p-10 rounded-[3rem] border-b-8 border-slate-900 w-full max-w-[320px] lg:max-w-[360px] shadow-2xl relative pt-4 flex flex-col">
+                <div class="flex justify-center mb-6">
+                    <!-- Enlarged Logo -->
+                    <div id="twin-logo" class="w-14 h-6 bg-slate-800 rounded-b-xl border-b-2 border-yellow-600 flex justify-center items-end pb-1 transition-all duration-100">
+                        <span class="text-[10px] font-bold text-yellow-600">LOGO</span>
                     </div>
                 </div>
-                <div class="flex justify-between items-center px-1 sm:px-3 mb-3">
-                    <button id="twin-btnA" class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] transition-all duration-75">A</button>
-                    <div class="grid grid-cols-5 gap-2.5 bg-black p-4 rounded-xl w-full mx-4 sm:mx-6" id="led-matrix"></div>
-                    <button id="twin-btnB" class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] transition-all duration-75">B</button>
+                <div class="flex justify-between items-center px-1 sm:px-2 mb-4">
+                    <!-- Enlarged Buttons & Matrix -->
+                    <button id="twin-btnA" class="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold shadow-[inset_0_3px_6px_rgba(0,0,0,0.5)] transition-all duration-75">A</button>
+                    <div class="grid grid-cols-5 gap-3 bg-black p-5 rounded-2xl w-full mx-4 sm:mx-6" id="led-matrix"></div>
+                    <button id="twin-btnB" class="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold shadow-[inset_0_3px_6px_rgba(0,0,0,0.5)] transition-all duration-75">B</button>
                 </div>
             </div>
+
+            <!-- New Clear Screen Button -->
+            <button onclick="sendBluetoothCommand('ICO:Clear')" class="mt-8 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 px-8 rounded-full shadow-lg transition-colors border border-slate-600 active:bg-red-500 active:border-red-500 flex items-center gap-2">
+                <span class="text-xl">🧽</span> Clear Screen
+            </button>
         </div>
 
         <!-- Instruments -->
@@ -140,6 +149,7 @@
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col gap-4 flex-1 h-full min-h-0">
             <h2 class="text-xl font-bold text-slate-300">Telemetry & Controls</h2>
             
+            <!-- Stretching Flex Charts -->
             <div class="flex flex-col gap-3 flex-1 min-h-[250px]">
                 <div class="bg-slate-900 p-3 rounded-lg border border-slate-700 flex-1 shadow-inner flex items-center min-h-[60px]">
                     <span class="text-[10px] sm:text-xs font-bold text-orange-400 w-12 text-center">TEMP</span>
@@ -155,6 +165,7 @@
                 </div>
             </div>
 
+            <!-- Controls locked to bottom -->
             <div class="flex flex-col gap-3 mt-4 shrink-0">
                 <div class="flex gap-2">
                     <input type="text" id="cmd-txt" placeholder="Type message..." class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 font-mono text-white">
@@ -207,6 +218,7 @@
         const sensorCharts = {};
         const maxDataPoints = {};
 
+        // Bluetooth Variables
         let bluetoothDevice;
         let bluetoothServer;
         let uartService;
@@ -578,7 +590,6 @@
             pairs.forEach(p => {
                 let kv = p.split(':');
                 if(kv.length === 2) {
-                    // PREVENT dropping leading zeros for the LED string
                     if(kv[0] === 'leds') {
                         data[kv[0]] = kv[1]; 
                     } else {
@@ -587,7 +598,6 @@
                 }
             });
 
-            // NEW: LED Matrix Sync Routine
             if(data.leds !== undefined && typeof data.leds === 'string' && data.leds.length === 25) {
                 const matrixLeds = document.querySelectorAll('#led-matrix .led');
                 for(let i=0; i<25; i++) {
@@ -753,7 +763,6 @@
             const btnA = Math.random() > 0.8 ? 1 : 0;
             const btnB = Math.random() > 0.8 ? 1 : 0;
             
-            // Random flashing LEDs for sim mode!
             let simLeds = "";
             for(let i=0; i<25; i++) simLeds += Math.random() > 0.8 ? "1" : "0";
 
