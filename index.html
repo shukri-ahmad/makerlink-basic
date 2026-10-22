@@ -126,3 +126,297 @@
                         <div id="val-btnA" class="w-6 h-6 rounded-full bg-gray-600 transition-colors shadow-inner"></div>
                     </div>
                     <div class="text-center flex flex-col items-center">
+                        <span class="text-gray-400 text-xs font-bold mb-2">BTN B</span>
+                        <div id="val-btnB" class="w-6 h-6 rounded-full bg-gray-600 transition-colors shadow-inner"></div>
+                    </div>
+                    <div class="text-center flex flex-col items-center">
+                        <span class="text-gray-400 text-xs font-bold mb-2">SHAKE</span>
+                        <div id="val-shk" class="w-6 h-6 rounded-full bg-gray-600 transition-colors shadow-inner"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUMN 2: MOTION:BIT Motors -->
+            <div class="flex flex-col gap-4">
+                <h2 class="text-xl font-bold text-gray-300 border-b border-gray-700 pb-2">Actuators</h2>
+                <div class="grid grid-cols-1 gap-4">
+                    <!-- Generate 4 Motor Cards -->
+                    <script>
+                        for(let i=1; i<=4; i++) {
+                            document.write(`
+                                <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-lg" id="card-m${i}">
+                                    <div class="flex justify-between items-center mb-3">
+                                        <h3 class="font-bold text-emerald-400 editable" contenteditable="false" data-key="title-m${i}">DC Motor ${i}</h3>
+                                        <div class="public-toggle flex items-center gap-2">
+                                            <span class="text-xs text-gray-400">Public</span>
+                                            <div class="relative inline-block w-10 align-middle select-none transition duration-200 ease-in">
+                                                <input type="checkbox" id="pub-m${i}" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                                <label for="pub-m${i}" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer"></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-4 mb-3">
+                                        <input type="range" min="-255" max="255" value="0" class="w-full accent-emerald-500 cursor-pointer" oninput="document.getElementById('val-m${i}').innerText=this.value; sendCommand('M${i}:'+this.value);" id="slider-m${i}">
+                                        <span id="val-m${i}" class="text-lg font-mono font-bold w-12 text-right text-gray-200">0</span>
+                                    </div>
+                                    <button onclick="document.getElementById('slider-m${i}').value=0; document.getElementById('val-m${i}').innerText='0'; sendCommand('M${i}:0');" class="w-full bg-red-900/40 hover:bg-red-600 text-red-200 py-2 rounded transition border border-red-800 font-bold tracking-wider">STOP</button>
+                                </div>
+                            `);
+                        }
+                    </script>
+                </div>
+            </div>
+
+            <!-- COLUMN 3: External Telemetry & Charts -->
+            <div class="flex flex-col gap-4">
+                <h2 class="text-xl font-bold text-gray-300 border-b border-gray-700 pb-2">Telemetry</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+                    <!-- Generate 4 Sensor Cards (Kept to 4 for clean 3-column height balance) -->
+                    <script>
+                        for(let i=1; i<=4; i++) {
+                            document.write(`
+                                <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-lg flex flex-col" id="card-s${i}">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <h3 class="font-bold text-blue-400 editable" contenteditable="false" data-key="title-s${i}">Sensor ${i}</h3>
+                                        <div class="public-toggle flex items-center gap-2">
+                                            <input type="checkbox" id="pub-s${i}" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                            <label for="pub-s${i}" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer"></label>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-baseline gap-1 mt-1">
+                                        <span id="val-s${i}" class="text-3xl font-bold text-gray-100 ext-value">0</span>
+                                        <span class="text-gray-400 editable ext-unit font-bold text-sm" contenteditable="false" data-key="unit-s${i}">unit</span>
+                                    </div>
+                                    <div class="w-full h-20 mt-2 bg-gray-900/50 rounded p-1 border border-gray-750">
+                                        <canvas id="chart-s${i}"></canvas>
+                                    </div>
+                                </div>
+                            `);
+                        }
+                    </script>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // MASTER LOCK & CLOUD SYNC LOGIC
+        // ==========================================
+        let isEditMode = false;
+        let isCloudActive = false;
+        const charts = {}; 
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const btn = document.getElementById('btnLock');
+            const txt = document.getElementById('lockText');
+            
+            if(isEditMode) {
+                document.body.classList.add('edit-mode');
+                txt.innerText = "Editing UI";
+                btn.classList.replace('bg-gray-700', 'bg-red-600');
+                btn.classList.replace('hover:bg-gray-600', 'hover:bg-red-500');
+                btn.classList.replace('border-gray-600', 'border-red-500');
+                btn.querySelector('span').innerText = "🔓";
+                document.querySelectorAll('.editable').forEach(el => el.setAttribute('contenteditable', 'true'));
+            } else {
+                document.body.classList.remove('edit-mode');
+                txt.innerText = "Run Mode";
+                btn.classList.replace('bg-red-600', 'bg-gray-700');
+                btn.classList.replace('hover:bg-red-500', 'hover:bg-gray-600');
+                btn.classList.replace('border-red-500', 'border-gray-600');
+                btn.querySelector('span').innerText = "🔒";
+                document.querySelectorAll('.editable').forEach(el => el.setAttribute('contenteditable', 'false'));
+                saveTitles(); 
+            }
+        }
+
+        function toggleCloud() {
+            isCloudActive = !isCloudActive;
+            const area = document.getElementById('cloudArea');
+            const btn = document.getElementById('btnCloud');
+            if(isCloudActive) {
+                area.classList.remove('hidden');
+                btn.classList.replace('bg-purple-600', 'bg-green-600');
+                btn.classList.replace('hover:bg-purple-500', 'hover:bg-green-500');
+                btn.innerText = "☁️ Sync Active";
+                updateCloudPayload();
+            } else {
+                area.classList.add('hidden');
+                btn.classList.replace('bg-green-600', 'bg-purple-600');
+                btn.classList.replace('hover:bg-green-500', 'hover:bg-purple-500');
+                btn.innerText = "☁️ Go Public";
+            }
+        }
+
+        function updateCloudPayload() {
+            if(!isCloudActive) return;
+            const payload = { timestamp: Date.now(), motors: {}, sensors: {} };
+            
+            for(let i=1; i<=4; i++) {
+                if(document.getElementById(`pub-m${i}`).checked) {
+                    let title = document.querySelector(`[data-key="title-m${i}"]`).innerText;
+                    let val = document.getElementById(`slider-m${i}`).value;
+                    payload.motors[title] = parseInt(val);
+                }
+            }
+            for(let i=1; i<=4; i++) {
+                if(document.getElementById(`pub-s${i}`).checked) {
+                    let title = document.querySelector(`[data-key="title-s${i}"]`).innerText;
+                    let val = document.getElementById(`val-s${i}`).innerText;
+                    let unit = document.querySelector(`[data-key="unit-s${i}"]`).innerText;
+                    payload.sensors[title] = { value: parseFloat(val) || 0, unit: unit };
+                }
+            }
+            document.getElementById('cloudPayload').value = JSON.stringify(payload, null, 2);
+        }
+
+        function saveTitles() {
+            document.querySelectorAll('.editable').forEach(el => {
+                localStorage.setItem(el.getAttribute('data-key'), el.innerText);
+            });
+        }
+
+        function loadTitles() {
+            document.querySelectorAll('.editable').forEach(el => {
+                let saved = localStorage.getItem(el.getAttribute('data-key'));
+                if(saved) el.innerText = saved;
+            });
+        }
+
+        // ==========================================
+        // CHART.JS SETUP
+        // ==========================================
+        function initCharts() {
+            for(let i=1; i<=4; i++) {
+                const ctx = document.getElementById(`chart-s${i}`).getContext('2d');
+                charts[`s${i}`] = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels: [], datasets: [{ data: [], borderColor: '#60A5FA', borderWidth: 2, pointRadius: 0, tension: 0.3 }] },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: true, ticks: { color: '#6B7280', maxTicksLimit: 3 }, grid: { color: '#374151' } } }, plugins: { legend: { display: false } }, animation: false }
+                });
+            }
+        }
+        
+        function updateChart(id, value) {
+            if(!charts[id]) return;
+            const chart = charts[id];
+            chart.data.labels.push('');
+            chart.data.datasets[0].data.push(value);
+            if(chart.data.labels.length > 20) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+            }
+            chart.update();
+        }
+
+        // ==========================================
+        // FIXED WEB BLUETOOTH UART LOGIC
+        // ==========================================
+        let bluetoothDevice;
+        let bluetoothServer;
+        let uartService;
+        let rxCharacteristic; // Web App listens on 0002
+        let txCharacteristic; // Web App writes to 0003
+
+        async function connectBluetooth() {
+            try {
+                console.log("Requesting Bluetooth Device...");
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
+                    filters: [{ namePrefix: 'BBC micro:bit' }],
+                    optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e'] 
+                });
+
+                console.log("Connecting to GATT Server...");
+                bluetoothServer = await bluetoothDevice.gatt.connect();
+
+                console.log("Getting UART Service...");
+                uartService = await bluetoothServer.getPrimaryService('6e400001-b5a3-f393-e0a9-e50e24dcca9e');
+
+                console.log("Getting TX/RX Characteristics...");
+                
+                // FIXED UUIDs for micro:bit hardware inversion
+                rxCharacteristic = await uartService.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e'); // 0002 is Notify
+                txCharacteristic = await uartService.getCharacteristic('6e400003-b5a3-f393-e0a9-e50e24dcca9e'); // 0003 is Write
+
+                await rxCharacteristic.startNotifications();
+                rxCharacteristic.addEventListener('characteristicvaluechanged', handleIncomingData);
+
+                document.getElementById("btnConnect").innerHTML = "✅ Connected";
+                document.getElementById("btnConnect").classList.replace("bg-blue-600", "bg-green-600");
+                console.log("Bluetooth Connected Successfully!");
+
+            } catch (error) {
+                console.error("Bluetooth Connection Error: ", error);
+                alert("Bluetooth connection failed. Check browser console.");
+            }
+        }
+
+        async function sendCommand(cmd) {
+            if (!txCharacteristic) return;
+            try {
+                let encoder = new TextEncoder();
+                let data = encoder.encode(cmd + "\n");
+                
+                if (txCharacteristic.properties.writeWithoutResponse) {
+                    await txCharacteristic.writeValueWithoutResponse(data);
+                } else {
+                    await txCharacteristic.writeValue(data);
+                }
+            } catch (error) {
+                console.error('Send Error:', error);
+            }
+        }
+
+        let incomingBuffer = "";
+        function handleIncomingData(event) {
+            let decoder = new TextDecoder('utf-8');
+            let chunk = decoder.decode(event.target.value);
+            incomingBuffer += chunk;
+            
+            let lines = incomingBuffer.split('\n');
+            incomingBuffer = lines.pop(); // Keep incomplete fragments in buffer
+
+            for(let line of lines) {
+                parseTelemetry(line.trim());
+            }
+            if(isCloudActive) updateCloudPayload();
+        }
+
+        function parseTelemetry(dataStr) {
+            if(!dataStr) return;
+            let pairs = dataStr.split(',');
+            for(let pair of pairs) {
+                let [key, val] = pair.split(':');
+                if(!key || val === undefined) continue;
+                
+                if(document.getElementById(`val-${key}`)) {
+                    if(key === 'btnA' || key === 'btnB' || key === 'shk') {
+                        document.getElementById(`val-${key}`).classList.replace(
+                            val == "1" ? 'bg-gray-600' : 'bg-red-500', 
+                            val == "1" ? 'bg-red-500' : 'bg-gray-600'
+                        );
+                    } else {
+                        document.getElementById(`val-${key}`).innerText = val;
+                    }
+                }
+                
+                if(key.match(/^s[1-4]$/)) {
+                    if(document.getElementById(`val-${key}`)) {
+                        document.getElementById(`val-${key}`).innerText = val;
+                        updateChart(key, parseFloat(val));
+                    }
+                }
+            }
+        }
+
+        // Initialize App
+        window.onload = () => {
+            loadTitles();
+            initCharts();
+        };
+    </script>
+</body>
+</html>
