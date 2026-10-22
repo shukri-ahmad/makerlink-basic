@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MakerLink IDE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        
+        /* Toggle Switch */
+        .toggle-checkbox:checked { right: 0; border-color: #22c55e; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #22c55e; }
+        .toggle-checkbox { right: 0; z-index: 1; border-color: #e2e8f0; transition: all 0.3s; }
+        .toggle-label { width: 3rem; height: 1.5rem; background-color: #64748b; border-radius: 9999px; transition: all 0.3s; }
+
+        /* LED Matrix Styles */
+        .led {
+            width: 100%; aspect-ratio: 1;
+            background-color: #334155; border-radius: 4px;
+            cursor: pointer; transition: all 0.1s;
+        }
+        .led.active { background-color: #ef4444; box-shadow: 0 0 10px #ef4444; }
+
+        /* Range Slider */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 20px; width: 20px;
+            border-radius: 50%; background: #38bdf8; cursor: pointer; margin-top: -6px;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 8px; cursor: pointer; background: #334155; border-radius: 4px;
+        }
+        
+        /* Hide number input spinners */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+        /* Edit Mode Styles */
+        body.is-editing .ui-editable {
+            border-bottom: 1px dashed #facc15;
+            border-radius: 0;
+            transition: border 0.2s;
+        }
+        body:not(.is-editing) .ui-editable { border-bottom: 1px solid transparent; }
+        body:not(.is-editing) .ui-editable-btn { pointer-events: none; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex flex-col p-4 md:p-6 overflow-x-hidden">
+
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row justify-between items-center bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-700 mb-6 gap-4 md:gap-0">
+        <h1 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+            MakerLink IDE
+        </h1>
+        <div class="flex flex-wrap gap-3 justify-center">
+            <button class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-lg">
+                🔌 Connect Bluetooth
+            </button>
+            <button id="btn-edit" onclick="toggleEditMode()" class="bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors min-w-[140px] shadow-lg">
+                🔒 Lock UI
+            </button>
+            <button id="btn-cloud" onclick="toggleCloud()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-lg transition-colors min-w-[140px] shadow-lg">
+                ☁️ Go Public
+            </button>
+            <button id="btn-sim" onclick="toggleSim()" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg transition-colors min-w-[130px] shadow-lg">
+                🧪 Sim Mode
+            </button>
+        </div>
+    </header>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-6">
+        <button id="tab-basic" onclick="switchTab('basic')" class="flex-1 py-3 bg-blue-500/20 text-blue-400 border border-blue-500/50 font-bold rounded-lg transition-all shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+            ⭐ Basic Mode
+        </button>
+        <button id="tab-adv" onclick="switchTab('adv')" class="flex-1 py-3 bg-slate-800 text-slate-400 border border-slate-700 font-bold rounded-lg hover:bg-slate-700 transition-all">
+            🚀 Advanced Mode
+        </button>
+    </div>
+
+    <!-- Basic Mode Content -->
+    <div id="content-basic" class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
+        <!-- Digital Twin -->
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col items-center justify-center">
+            <h2 class="text-xl font-bold mb-6 text-slate-300">Digital Twin</h2>
+            <div class="bg-slate-950 p-6 rounded-[2rem] border-b-8 border-slate-900 w-64 shadow-2xl relative">
+                <div class="flex justify-between items-center px-2 mb-2">
+                    <button class="w-6 h-6 rounded-full bg-slate-700 active:bg-slate-500 flex items-center justify-center text-xs font-bold shadow-inner">A</button>
+                    <div class="grid grid-cols-5 gap-2 bg-black p-3 rounded-lg w-full mx-4" id="led-matrix"></div>
+                    <button class="w-6 h-6 rounded-full bg-slate-700 active:bg-slate-500 flex items-center justify-center text-xs font-bold shadow-inner">B</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instruments -->
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col gap-6">
+            <h2 class="text-xl font-bold text-slate-300">Instruments</h2>
+            <div id="shake-indicator" class="bg-slate-700 text-slate-400 text-center py-2 rounded-lg font-bold uppercase transition-colors border border-slate-600">No Shake</div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-900 p-4 rounded-lg flex flex-col items-center border border-slate-700 shadow-inner">
+                    <span class="text-sm font-bold text-slate-400 mb-2">PITCH</span>
+                    <div class="h-24 w-12 bg-slate-800 rounded-full relative overflow-hidden flex justify-center border border-slate-700">
+                        <div id="pitch-bar" class="w-full h-1 bg-green-500 absolute top-1/2 transition-transform duration-200 shadow-[0_0_8px_#22c55e]"></div>
+                    </div>
+                    <span id="val-pitch" class="mt-2 font-mono text-green-400 font-bold">0°</span>
+                </div>
+                <div class="bg-slate-900 p-4 rounded-lg flex flex-col items-center border border-slate-700 shadow-inner">
+                    <span class="text-sm font-bold text-slate-400 mb-2">ROLL</span>
+                    <div class="h-24 w-24 bg-slate-800 rounded-full relative overflow-hidden flex justify-center items-center border-2 border-slate-700 shadow-inner">
+                        <div id="roll-horizon" class="w-full h-full absolute transition-transform duration-200 flex flex-col">
+                            <div class="h-1/2 w-full bg-blue-500/30 border-b-2 border-blue-500 shadow-[0_4px_10px_rgba(59,130,246,0.4)]"></div>
+                        </div>
+                    </div>
+                    <span id="val-roll" class="mt-2 font-mono text-blue-400 font-bold">0°</span>
+                </div>
+            </div>
+            <div class="bg-slate-900 p-4 rounded-lg flex flex-col items-center border border-slate-700 shadow-inner">
+                <span class="text-sm font-bold text-slate-400 mb-2">COMPASS</span>
+                <div class="h-24 w-24 rounded-full border-4 border-slate-700 flex justify-center items-center relative bg-slate-800">
+                    <div id="compass-needle" class="w-1.5 h-20 bg-red-500 absolute transition-transform duration-200 shadow-lg" style="clip-path: polygon(50% 0%, 0% 100%, 100% 100%);"></div>
+                </div>
+                <span id="val-compass" class="mt-2 font-mono text-red-400 font-bold">0° N</span>
+            </div>
+        </div>
+
+        <!-- Telemetry & Controls -->
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col gap-6">
+            <h2 class="text-xl font-bold text-slate-300">Telemetry & Controls</h2>
+            <div class="bg-slate-900 p-2 rounded-lg border border-slate-700 h-48 relative w-full shadow-inner">
+                <canvas id="telemetryChart"></canvas>
+            </div>
+            <div class="flex flex-col gap-3 mt-auto">
+                <div class="flex gap-2">
+                    <input type="text" placeholder="Type message..." class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 font-mono">
+                    <button class="bg-blue-600 hover:bg-blue-500 px-4 rounded-lg font-bold text-sm transition-colors shadow-lg">SEND</button>
+                </div>
+                <div class="flex gap-2">
+                    <select class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none font-mono">
+                        <option>❤️ Heart</option>
+                        <option>😀 Happy</option>
+                        <option>👻 Ghost</option>
+                    </select>
+                    <button class="bg-pink-600 hover:bg-pink-500 px-4 rounded-lg font-bold text-sm transition-colors shadow-lg">SHOW</button>
+                </div>
+                <div class="flex gap-2">
+                    <select class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none font-mono">
+                        <option>BaDing</option>
+                        <option>PowerUp</option>
+                        <option>Wawawawa</option>
+                    </select>
+                    <button class="bg-teal-600 hover:bg-teal-500 px-4 rounded-lg font-bold text-sm transition-colors shadow-lg">PLAY</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Mode Content -->
+    <div id="content-adv" class="hidden flex-col gap-8 flex-1">
+        <!-- DC Motors -->
+        <div>
+            <h3 class="text-xl font-bold text-orange-400 mb-4 flex items-center gap-2">⚙️ DC MOTORS (MOTION:BIT)</h3>
+            <div id="grid-motors" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"></div>
+        </div>
+        <!-- Servos -->
+        <div>
+            <h3 class="text-xl font-bold text-blue-400 mb-4 flex items-center gap-2">🦾 SERVOS</h3>
+            <div id="grid-servos" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"></div>
+        </div>
+        <!-- Ext Sensors -->
+        <div>
+            <h3 class="text-xl font-bold text-emerald-400 mb-4 flex items-center gap-2">🔌 EXTERNAL SENSORS</h3>
+            <div id="grid-sensors" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- State ---
+        let currentTab = 'basic';
+        let isSimActive = false, simInterval = null;
+        let isCloudActive = false, cloudRoomId = null, cloudInterval = null;
+        let isEditMode = false;
+        const advancedData = {};
+        const toggleStates = {};
+
+        // --- Init ---
+        window.onload = () => {
+            initLEDs();
+            initChart();
+            generateAdvancedCards();
+        };
+
+        // --- Edit Mode ---
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const btn = document.getElementById('btn-edit');
+            if (isEditMode) {
+                document.body.classList.add('is-editing');
+                btn.innerHTML = "🔓 Editing UI";
+                btn.className = "bg-yellow-500 hover:bg-yellow-400 text-yellow-950 font-bold py-2 px-4 rounded-lg transition-colors min-w-[140px] shadow-[0_0_15px_rgba(234,179,8,0.4)]";
+                document.querySelectorAll('.ui-editable').forEach(el => el.removeAttribute('readonly'));
+            } else {
+                document.body.classList.remove('is-editing');
+                btn.innerHTML = "🔒 Lock UI";
+                btn.className = "bg-slate-600 hover:bg-slate-500 text-white font-bold py-2 px-4 rounded-lg transition-colors min-w-[140px] shadow-lg";
+                document.querySelectorAll('.ui-editable').forEach(el => el.setAttribute('readonly', true));
+            }
+        }
+
+        // --- UI Setup Basic ---
+        function initLEDs() {
+            const matrix = document.getElementById('led-matrix');
+            for(let i=0; i<25; i++) {
+                const led = document.createElement('div');
+                led.className = 'led';
+                led.onclick = () => led.classList.toggle('active');
+                matrix.appendChild(led);
+            }
+        }
+
+        let myChart;
+        function initChart() {
+            const ctx = document.getElementById('telemetryChart').getContext('2d');
+            Chart.defaults.color = '#94a3b8';
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: [
+                    { label: 'Temp', borderColor: '#fb923c', data: [], tension: 0.4, pointRadius: 0, borderWidth: 2 },
+                    { label: 'Light', borderColor: '#facc15', data: [], tension: 0.4, pointRadius: 0, borderWidth: 2 },
+                    { label: 'Sound', borderColor: '#22d3ee', data: [], tension: 0.4, pointRadius: 0, borderWidth: 2 }
+                ]},
+                options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { border: {display: false}, grid: {color: '#334155', drawBorder: false} } } }
+            });
+        }
+
+        // --- Tab Logic ---
+        function switchTab(tab) {
+            currentTab = tab;
+            const btnBasic = document.getElementById('tab-basic');
+            const btnAdv = document.getElementById('tab-adv');
+            const contentBasic = document.getElementById('content-basic');
+            const contentAdv = document.getElementById('content-adv');
+
+            if (tab === 'basic') {
+                btnBasic.className = "flex-1 py-3 bg-blue-500/20 text-blue-400 border border-blue-500/50 font-bold rounded-lg transition-all shadow-[0_0_15px_rgba(59,130,246,0.2)]";
+                btnAdv.className = "flex-1 py-3 bg-slate-800 text-slate-400 border border-slate-700 font-bold rounded-lg hover:bg-slate-700 transition-all";
+                contentBasic.style.display = 'grid'; contentAdv.style.display = 'none';
+            } else {
+                btnAdv.className = "flex-1 py-3 bg-blue-500/20 text-blue-400 border border-blue-500/50 font-bold rounded-lg transition-all shadow-[0_0_15px_rgba(59,130,246,0.2)]";
+                btnBasic.className = "flex-1 py-3 bg-slate-800 text-slate-400 border border-slate-700 font-bold rounded-lg hover:bg-slate-700 transition-all";
+                contentBasic.style.display = 'none'; contentAdv.style.display = 'flex';
+            }
+        }
+
+        // --- Advanced UI ---
+        function generateAdvancedCards() {
+            const gridMotors = document.getElementById('grid-motors');
+            for(let i=1; i<=4; i++) {
+                gridMotors.innerHTML += createCardHTML(`M${i}`, `M${i}`, 'motor', -255, 255, 0, 'text-orange-400');
+                advancedData[`M${i}`] = 0; toggleStates[`M${i}`] = true;
+            }
+            const gridServos = document.getElementById('grid-servos');
+            for(let i=1; i<=8; i++) {
+                gridServos.innerHTML += createCardHTML(`S${i}`, `Servo ${i}`, 'servo', 0, 180, 90, 'text-blue-400');
+                advancedData[`S${i}`] = 90; toggleStates[`S${i}`] = true;
+            }
+            const gridSensors = document.getElementById('grid-sensors');
+            for(let i=1; i<=8; i++) {
+                gridSensors.innerHTML += createCardHTML(`Ext${i}`, `Sensor ${i}`, 'sensor', 0, 0, '---', 'text-emerald-400');
+                advancedData[`Ext${i}`] = 0; toggleStates[`Ext${i}`] = true;
+            }
+        }
+
+        function createCardHTML(id, title, type, min, max, defaultVal, colorClass) {
+            let bodyHTML = '';
+            
+            if (type === 'sensor') {
+                bodyHTML = `
+                    <div class="flex items-baseline justify-center gap-2">
+                        <div id="val-${id}" class="text-3xl font-mono ${colorClass} font-bold py-4">${defaultVal}</div>
+                        <input type="text" id="unit-${id}" value="unit" readonly onclick="event.stopPropagation()" class="ui-editable ui-editable-btn bg-transparent text-slate-500 text-lg font-bold w-16 text-left outline-none focus:bg-slate-700/50 rounded px-1 placeholder-slate-600" placeholder="unit">
+                    </div>
+                `;
+            } else if (type === 'motor') {
+                bodyHTML = `
+                    <div class="w-full flex flex-col items-center">
+                        <div id="val-${id}" class="text-lg font-mono ${colorClass} font-bold mb-4 w-full text-center bg-slate-900 py-2 rounded-lg border border-slate-700 shadow-inner">STOP (0)</div>
+                        <div class="flex gap-2 w-full mb-4">
+                            <div class="flex-1 flex flex-col">
+                                <label class="text-[10px] text-slate-400 mb-1 text-center font-bold">CCW SPEED</label>
+                                <input type="number" id="ccw-spd-${id}" min="0" max="255" value="255" class="w-full bg-slate-900 border border-slate-600 rounded-md px-1 py-2 text-center text-sm font-mono text-orange-400 focus:outline-none focus:border-orange-500 shadow-inner">
+                            </div>
+                            <div class="flex-1 flex flex-col">
+                                <label class="text-[10px] text-slate-400 mb-1 text-center font-bold">CW SPEED</label>
+                                <input type="number" id="cw-spd-${id}" min="0" max="255" value="255" class="w-full bg-slate-900 border border-slate-600 rounded-md px-1 py-2 text-center text-sm font-mono text-orange-400 focus:outline-none focus:border-orange-500 shadow-inner">
+                            </div>
+                        </div>
+                        <div class="flex gap-2 w-full">
+                            <div onclick="if(!isEditMode) setMotor('${id}', 'ccw')" class="flex-1 bg-yellow-600 hover:bg-yellow-500 text-white text-xs font-bold py-2 rounded-lg shadow-lg transition-colors border border-yellow-700/50 cursor-pointer flex items-center justify-center">
+                                <input type="text" id="btn-ccw-lbl-${id}" value="⏪ CCW" readonly onclick="event.stopPropagation()" class="ui-editable ui-editable-btn bg-transparent text-center w-full outline-none focus:bg-yellow-800/50 rounded px-1">
+                            </div>
+                            <div onclick="if(!isEditMode) setMotor('${id}', 'stop')" class="flex-1 bg-red-600 hover:bg-red-500 text-white text-xs font-bold py-2 rounded-lg shadow-lg transition-colors border border-red-700/50 cursor-pointer flex items-center justify-center">
+                                <input type="text" id="btn-stop-lbl-${id}" value="⏹️ STOP" readonly onclick="event.stopPropagation()" class="ui-editable ui-editable-btn bg-transparent text-center w-full outline-none focus:bg-red-800/50 rounded px-1">
+                            </div>
+                            <div onclick="if(!isEditMode) setMotor('${id}', 'cw')" class="flex-1 bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2 rounded-lg shadow-lg transition-colors border border-green-700/50 cursor-pointer flex items-center justify-center">
+                                <input type="text" id="btn-cw-lbl-${id}" value="CW ⏩" readonly onclick="event.stopPropagation()" class="ui-editable ui-editable-btn bg-transparent text-center w-full outline-none focus:bg-green-800/50 rounded px-1">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else { // servo
+                bodyHTML = `
+                    <div class="w-full flex flex-col items-center">
+                        <div id="val-${id}" class="text-2xl font-mono ${colorClass} font-bold mb-4">${defaultVal}°</div>
+                        <input type="range" id="slider-${id}" min="${min}" max="${max}" value="${defaultVal}" oninput="updateVal('${id}', this.value)" class="w-full">
+                        <div class="flex justify-between w-full text-xs text-slate-500 mt-2 font-mono"><span>${min}°</span><span>${max}°</span></div>
+                        <div class="flex gap-2 w-full mt-4">
+                            <div class="flex-1 flex flex-col gap-1">
+                                <input type="number" id="pos1-val-${id}" min="0" max="180" value="0" class="w-full bg-slate-900 border border-slate-600 rounded-md px-1 py-1.5 text-center text-sm font-mono ${colorClass} focus:outline-none focus:border-blue-500 shadow-inner">
+                                <div onclick="if(!isEditMode) setServoPos('${id}', 1)" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-1.5 rounded-lg shadow-lg transition-colors border border-blue-700/50 cursor-pointer flex items-center justify-center">
+                                    <input type="text" id="btn-pos1-lbl-${id}" value="Pos 1" readonly onclick="event.stopPropagation()" class="ui-editable ui-editable-btn bg-transparent text-center w-full outline-none focus:bg-blue-800/50 rounded px-1">
+                                </div>
+                            </div>
+                            <div class="flex-1 flex flex-col gap-1">
+                                <input type="number" id="pos2-val-${id}" min="0" max="180" value="180" class="w-full bg-slate-900 border border-slate-600 rounded-md px-1 py-1.5 text-center text-sm font-mono ${colorClass} focus:outline-none focus:border-blue-500 shadow-inner">
+                                <div onclick="if(!isEditMode) setServoPos('${id}', 2)" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold py-1.5 rounded-lg shadow-lg transition-colors border border-blue-700/50 cursor-pointer flex items-center justify-center">
+                                    <input type="text" id="btn-pos2-lbl-${id}" value="Pos 2" readonly onclick="event.stopPropagation()" class="ui-editable ui-editable-btn bg-transparent text-center w-full outline-none focus:bg-blue-800/50 rounded px-1">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden flex flex-col transition-all duration-300 shadow-lg hover:border-slate-500/50">
+                    <div class="p-3 bg-slate-900 border-b border-slate-700 flex justify-between items-center">
+                        <input type="text" id="title-${id}" value="${title}" readonly class="ui-editable ui-editable-title font-bold text-sm text-slate-300 ml-1 bg-transparent border-none outline-none focus:ring-1 focus:ring-slate-500 rounded w-28 placeholder-slate-500" placeholder="Name...">
+                        <div class="flex items-center gap-2 relative">
+                            <span id="badge-${id}" class="hidden absolute right-14 whitespace-nowrap bg-blue-500/20 text-blue-400 text-[10px] font-bold px-2 py-1 rounded animate-pulse border border-blue-500/30 shadow-[0_0_5px_rgba(59,130,246,0.3)]">☁️ LIVE</span>
+                            <div class="relative inline-block w-10 mr-1 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" id="toggle-${id}" checked onchange="handleToggle('${id}', this.checked)" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+                                <label for="toggle-${id}" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-600 cursor-pointer shadow-inner"></label>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="body-${id}" class="p-5 flex-1 flex items-center justify-center bg-slate-800">
+                        ${bodyHTML}
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- Controls logic ---
+        function updateVal(id, val) {
+            document.getElementById(`val-${id}`).innerText = val + '°';
+            advancedData[id] = Number(val);
+        }
+
+        function setServoPos(id, posNum) {
+            let val = parseInt(document.getElementById(`pos${posNum}-val-${id}`).value) || 0;
+            if (val > 180) val = 180; if (val < 0) val = 0;
+            const slider = document.getElementById(`slider-${id}`);
+            if (slider) slider.value = val;
+            updateVal(id, val);
+        }
+
+        function setMotor(id, action) {
+            let val = 0;
+            if (action === 'ccw') {
+                let spd = parseInt(document.getElementById(`ccw-spd-${id}`).value) || 0;
+                val = -(spd > 255 ? 255 : (spd < 0 ? 0 : spd));
+            } else if (action === 'cw') {
+                let spd = parseInt(document.getElementById(`cw-spd-${id}`).value) || 0;
+                val = (spd > 255 ? 255 : (spd < 0 ? 0 : spd));
+            }
+            let displayStr = val > 0 ? `CW (${val})` : (val < 0 ? `CCW (${val})` : 'STOP (0)');
+            document.getElementById(`val-${id}`).innerText = displayStr;
+            advancedData[id] = val;
+        }
+
+        function handleToggle(id, isChecked) {
+            toggleStates[id] = isChecked;
+            document.getElementById(`body-${id}`).style.display = isChecked ? 'flex' : 'none';
+            updateBadges();
+        }
+
+        // --- Cloud Logic ---
+        function toggleCloud() {
+            isCloudActive = !isCloudActive;
+            const btn = document.getElementById('btn-cloud');
+            if (isCloudActive) {
+                cloudRoomId = Math.floor(1000 + Math.random() * 9000);
+                btn.innerHTML = `🔴 Live: Room ${cloudRoomId}`;
+                btn.className = "bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg transition-colors min-w-[140px] animate-pulse shadow-[0_0_15px_rgba(220,38,38,0.5)]";
+                cloudInterval = setInterval(syncCloud, 2000);
+            } else {
+                btn.innerHTML = `☁️ Go Public`;
+                btn.className = "bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-lg transition-colors min-w-[140px] shadow-lg";
+                clearInterval(cloudInterval);
+            }
+            updateBadges();
+        }
+
+        function updateBadges() {
+            Object.keys(toggleStates).forEach(id => {
+                const badge = document.getElementById(`badge-${id}`);
+                if (badge) {
+                    if (isCloudActive && toggleStates[id]) badge.classList.remove('hidden');
+                    else badge.classList.add('hidden');
+                }
+            });
+        }
+
+        function syncCloud() {
+            const payload = { room: cloudRoomId, data: {} };
+            Object.keys(toggleStates).forEach(id => {
+                if (toggleStates[id]) {
+                    let nodeData = { value: advancedData[id], title: document.getElementById(`title-${id}`).value };
+                    if (id.startsWith('M')) {
+                        nodeData.type = 'motor';
+                        nodeData.lblCCW = document.getElementById(`btn-ccw-lbl-${id}`).value;
+                        nodeData.lblStop = document.getElementById(`btn-stop-lbl-${id}`).value;
+                        nodeData.lblCW = document.getElementById(`btn-cw-lbl-${id}`).value;
+                    } else if (id.startsWith('S')) {
+                        nodeData.type = 'servo';
+                        nodeData.lblPos1 = document.getElementById(`btn-pos1-lbl-${id}`).value;
+                        nodeData.lblPos2 = document.getElementById(`btn-pos2-lbl-${id}`).value;
+                    } else if (id.startsWith('Ext')) {
+                        nodeData.type = 'sensor';
+                        nodeData.unit = document.getElementById(`unit-${id}`).value;
+                    }
+                    payload.data[id] = nodeData;
+                }
+            });
+            console.log("☁️ [Cloud Sync]", JSON.stringify(payload));
+        }
+
+        // --- Sim Mode ---
+        let tick = 0;
+        function toggleSim() {
+            isSimActive = !isSimActive;
+            const btn = document.getElementById('btn-sim');
+            if (isSimActive) {
+                btn.className = "bg-green-400 text-green-950 font-bold py-2 px-4 rounded-lg transition-colors border-2 border-green-300 shadow-[0_0_15px_rgba(74,222,128,0.5)] min-w-[130px]";
+                btn.innerText = "🛑 Stop Sim";
+                simInterval = setInterval(runSim, 1000);
+            } else {
+                btn.className = "bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg transition-colors min-w-[130px] shadow-lg";
+                btn.innerText = "🧪 Sim Mode";
+                clearInterval(simInterval);
+            }
+        }
+
+        function runSim() {
+            tick += 0.5;
+            const p = Math.sin(tick) * 45, r = Math.cos(tick * 0.8) * 90, h = (tick * 50) % 360;
+            document.getElementById('val-pitch').innerText = `${Math.round(p)}°`;
+            document.getElementById('pitch-bar').style.transform = `translateY(${p}px)`;
+            document.getElementById('val-roll').innerText = `${Math.round(r)}°`;
+            document.getElementById('roll-horizon').style.transform = `rotate(${r}deg)`;
+            document.getElementById('val-compass').innerText = `${Math.round(h)}°`;
+            document.getElementById('compass-needle').style.transform = `rotate(${h}deg)`;
+
+            const isShake = Math.random() > 0.9;
+            const shakeInd = document.getElementById('shake-indicator');
+            if (isShake) {
+                shakeInd.innerText = "SHAKE DETECTED";
+                shakeInd.className = "bg-red-600 text-white text-center py-2 rounded-lg font-bold uppercase transition-colors shadow-[0_0_10px_rgba(220,38,38,0.5)] border border-red-500";
+            } else {
+                shakeInd.innerText = "No Shake";
+                shakeInd.className = "bg-slate-700 text-slate-400 text-center py-2 rounded-lg font-bold uppercase transition-colors border border-slate-600";
+            }
+
+            myChart.data.labels.push('');
+            myChart.data.datasets[0].data.push(25 + Math.sin(tick)*5); 
+            myChart.data.datasets[1].data.push(128 + Math.cos(tick*2)*100); 
+            myChart.data.datasets[2].data.push(Math.random() * 50); 
+            if(myChart.data.labels.length > 20) {
+                myChart.data.labels.shift();
+                myChart.data.datasets.forEach(ds => ds.data.shift());
+            }
+            myChart.update();
+
+            for(let i=1; i<=8; i++) {
+                const id = `Ext${i}`;
+                const val = Math.floor(Math.random() * 1024);
+                advancedData[id] = val;
+                const el = document.getElementById(`val-${id}`);
+                if (el) el.innerText = val;
+            }
+        }
+    </script>
+</body>
+</html>
